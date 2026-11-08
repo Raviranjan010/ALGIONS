@@ -18,6 +18,7 @@ import {
   User,
   XCircle,
 } from "lucide-react";
+import { QRCodeView } from "@/components/booking/QRCodeView";
 
 interface TicketCardProps {
   booking: Booking;
@@ -103,7 +104,7 @@ export const TicketCard: React.FC<TicketCardProps> = ({
 
       <div className="p-6 space-y-6">
         {/* Journey Details */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pb-6 border-b border-slate-200 dark:border-slate-800">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 pb-6 border-b border-slate-200 dark:border-slate-800 items-center">
           <div>
             <span className="text-xs uppercase tracking-wider text-slate-400 font-semibold">
               Departure
@@ -149,6 +150,10 @@ export const TicketCard: React.FC<TicketCardProps> = ({
             <p className="text-xs text-slate-500">
               Reg: {booking.trip?.vehicle?.registration_number || "N/A"}
             </p>
+          </div>
+
+          <div className="flex justify-center md:justify-end">
+            <QRCodeView pnr={booking.pnr} size={96} />
           </div>
         </div>
 
