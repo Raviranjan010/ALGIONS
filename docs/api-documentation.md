@@ -112,3 +112,4 @@ All API endpoints are implemented as Next.js Route Handlers with strict Zod requ
 - **`GET /api/operator/routes`**: Lists routes.
 - **`POST /api/operator/routes`**: Creates a new route corridor.
 - **`POST /api/operator/trips`**: Schedules a new departure and initializes trip seat inventory.
+

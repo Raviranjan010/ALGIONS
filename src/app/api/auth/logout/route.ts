@@ -5,3 +5,4 @@ export async function POST() {
   response.cookies.delete("algions_user_session");
   return response;
 }
+

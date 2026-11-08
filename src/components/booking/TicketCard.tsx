@@ -349,3 +349,4 @@ export const TicketCard: React.FC<TicketCardProps> = ({
     </div>
   );
 };
+

@@ -28,3 +28,4 @@ PostgreSQL RLS is enabled on all tables in public schema:
   - Partial unique index: `CREATE UNIQUE INDEX idx_booking_seats_active_trip_seat ON public.booking_seats(trip_seat_id) WHERE (is_active = true)` prevents race conditions at the database constraint level.
 - **Secrets Management**:
   - Service-role keys (`SUPABASE_SERVICE_ROLE_KEY`) are kept on the server only and never exposed in `NEXT_PUBLIC_*` environment variables.
+

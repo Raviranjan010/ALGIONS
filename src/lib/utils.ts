@@ -47,3 +47,4 @@ export function formatDuration(minutes: number): string {
   if (mins === 0) return `${hours}h`;
   return `${hours}h ${mins}m`;
 }
+

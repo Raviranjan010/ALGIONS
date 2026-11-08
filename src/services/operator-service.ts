@@ -138,3 +138,4 @@ export class OperatorService {
     return db.getTripById(id)!;
   }
 }
+

@@ -13,3 +13,4 @@ describe("Unit: Fare Calculation & Formatting", () => {
     expect(formatted).toContain("1,450");
   });
 });
+

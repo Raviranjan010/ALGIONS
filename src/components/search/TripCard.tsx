@@ -129,3 +129,4 @@ export const TripCard: React.FC<TripCardProps> = ({ trip, onSelect }) => {
     </div>
   );
 };
+

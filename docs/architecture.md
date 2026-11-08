@@ -57,3 +57,4 @@ graph TD
 - **Supabase PostgreSQL**: Enforces referential integrity, foreign key cascading, unique constraints, and check constraints.
 - **Concurrency & Atomicity**: Row-level locking (`SELECT ... FOR UPDATE`) inside PostgreSQL transactional RPC functions ensures that racing threads cannot double-book a single seat.
 - **Storage Invariant**: Partial unique index on active bookings (`booking_seats(trip_seat_id) WHERE is_active = true`) acts as a hard database invariant.
+

@@ -50,3 +50,4 @@ Use this script during your technical interview to demonstrate the system clearl
 
 ## 4:45 - 5:00 | Conclusion & Q&A
 > "In summary, the platform delivers all five mandatory acceptance scenarios with zero double-booking risk, full automated test coverage, strict type safety, and production build readiness. I'm now excited to dive into any specific code or SQL implementation questions you may have!"
+

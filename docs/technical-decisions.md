@@ -25,3 +25,4 @@
   - `2 to 12 hours` before departure: 50% refund (50% cancellation charge)
   - `< 2 hours` before departure: 0% refund (non-refundable)
 - **Rationale**: Clear, transparent, deterministic cancellation rules with historical record preservation in `cancellations` and `audit_logs`.
+

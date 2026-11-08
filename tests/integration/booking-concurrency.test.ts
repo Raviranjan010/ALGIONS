@@ -330,3 +330,4 @@ describe("Integration: Booking Engine, Concurrency & Acceptance Scenarios", () =
     expect(tripReport?.net_revenue).toBe(tripReport!.gross_revenue - tripReport!.cancelled_revenue);
   });
 });
+

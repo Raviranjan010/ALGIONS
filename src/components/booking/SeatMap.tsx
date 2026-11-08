@@ -187,3 +187,4 @@ export const SeatMap: React.FC<SeatMapProps> = ({
     );
   }
 };
+

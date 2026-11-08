@@ -6,3 +6,4 @@ export class ReportService {
     return db.getOccupancyReports(operatorId);
   }
 }
+

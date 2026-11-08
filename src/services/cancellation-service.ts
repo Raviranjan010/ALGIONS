@@ -10,3 +10,4 @@ export class CancellationService {
     return db.cancelBookingAtomic(params);
   }
 }
+

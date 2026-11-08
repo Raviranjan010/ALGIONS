@@ -51,3 +51,4 @@ Test Files  5 passed (5)
 - **Status**: VERIFIED
 - **Evidence**: `tests/integration/booking-concurrency.test.ts -> Scenario 6`
 - **Result**: Passenger manifest matched confirmed passenger records. Occupancy report calculated exact seat counts (`total_seats = booked_seats + available_seats`) and reconciled `net_revenue = gross_revenue - cancelled_revenue`.
+

@@ -159,3 +159,4 @@ BEGIN
     ON CONFLICT (trip_id, seat_number) DO NOTHING;
 
 END $$;
+

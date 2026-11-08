@@ -170,3 +170,4 @@ export const SearchForm: React.FC<SearchFormProps> = ({
     </form>
   );
 };
+

@@ -199,3 +199,4 @@ erDiagram
   8. Inserts `cancellations` record.
   9. Inserts `audit_logs` record.
   10. Returns cancellation details.
+

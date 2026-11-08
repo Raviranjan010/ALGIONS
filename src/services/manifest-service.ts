@@ -6,3 +6,4 @@ export class ManifestService {
     return db.getPassengerManifest(tripId);
   }
 }
+

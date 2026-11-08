@@ -30,3 +30,4 @@ export class TripService {
     return trips.sort((a, b) => new Date(a.departure_time).getTime() - new Date(b.departure_time).getTime());
   }
 }
+
