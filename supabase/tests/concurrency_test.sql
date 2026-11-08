@@ -81,3 +81,4 @@ BEGIN
 
     RAISE NOTICE 'CONCURRENCY INTEGRITY VERIFIED: Exactly 1 active confirmed booking exists. Duplicate allocation blocked.';
 END $$;
+

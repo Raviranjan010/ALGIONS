@@ -60,3 +60,4 @@ export const QRCodeView: React.FC<QRCodeViewProps> = ({
     </div>
   );
 };
+
