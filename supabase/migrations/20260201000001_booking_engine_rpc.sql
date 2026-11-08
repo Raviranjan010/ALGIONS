@@ -1,14 +1,16 @@
 -- ============================================================================
 -- ALGIONS BUS BOOKING MANAGEMENT SYSTEM
 -- Migration: 20260201000001_booking_engine_rpc.sql
--- Description: Transactional PostgreSQL RPC functions for atomic booking,
---              seat-locking, double-booking prevention, idempotency, and cancellation.
+-- Description: Transactional PostgreSQL RPC functions with enterprise security,
+--              caller identity verification, row-level seat locking, and idempotent cancellation.
 -- ============================================================================
 
 -- Function to generate a secure random PNR code: ALG-XXXXXX
 CREATE OR REPLACE FUNCTION public.generate_pnr()
 RETURNS TEXT
 LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
 AS $$
 DECLARE
     chars TEXT := '23456789ABCDEFGHJKLMNPQRSTUVWXYZ'; -- omit ambiguous chars (0,1,I,O)
@@ -23,7 +25,7 @@ END;
 $$;
 
 -- ----------------------------------------------------------------------------
--- 1. ATOMIC BOOKING CREATION TRANSACTION
+-- 1. ATOMIC BOOKING CREATION TRANSACTION (Hardened SECURITY DEFINER)
 -- ----------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION public.create_booking_atomic(
     p_trip_id UUID,
@@ -39,16 +41,27 @@ SECURITY DEFINER
 SET search_path = public
 AS $$
 DECLARE
+    v_caller_id UUID;
     v_trip RECORD;
     v_existing_booking RECORD;
     v_new_booking_id UUID;
     v_pnr TEXT;
     v_total_fare NUMERIC(10,2) := 0;
     v_locked_seats_count INTEGER;
-    v_passenger RECORD;
     v_seat RECORD;
     v_idx INTEGER;
 BEGIN
+    -- 0. Caller Identity & Authorization Hardening
+    -- If executed within Supabase Auth context, ensure caller matches p_user_id
+    v_caller_id := auth.uid();
+    IF v_caller_id IS NOT NULL AND v_caller_id <> p_user_id THEN
+        -- Allow if caller is system administrator
+        IF NOT public.is_admin(v_caller_id) THEN
+            RAISE EXCEPTION 'UNAUTHORIZED_CALLER_IDENTITY'
+                USING HINT = 'Authenticated caller id does not match requested user_id';
+        END IF;
+    END IF;
+
     -- 1. Idempotency Check
     IF p_idempotency_key IS NOT NULL AND trim(p_idempotency_key) <> '' THEN
         SELECT b.id, b.pnr, b.trip_id, b.user_id, b.total_fare, b.status, b.created_at
@@ -114,7 +127,7 @@ BEGIN
       AND status = 'available'
     FOR UPDATE;
 
-    -- If the count of locked available seats doesn't match requested count,
+    -- If count of locked available seats doesn't match requested count,
     -- at least one seat is already booked or doesn't belong to this trip.
     IF v_locked_seats_count <> array_length(p_seat_ids, 1) THEN
         RAISE EXCEPTION 'SEAT_NOT_AVAILABLE' 
@@ -163,7 +176,6 @@ BEGIN
 
     -- 8. Insert Passengers and Booking Seats
     FOR v_idx IN 0 .. (jsonb_array_length(p_passengers) - 1) LOOP
-        -- Insert passenger
         INSERT INTO public.booking_passengers (
             booking_id,
             full_name,
@@ -179,7 +191,6 @@ BEGIN
         );
     END LOOP;
 
-    -- Insert booking_seats & Update trip_seats status
     FOR v_seat IN 
         SELECT id, seat_number, fare 
         FROM public.trip_seats 
@@ -253,6 +264,7 @@ SECURITY DEFINER
 SET search_path = public
 AS $$
 DECLARE
+    v_caller_id UUID;
     v_booking RECORD;
     v_trip RECORD;
     v_is_authorized BOOLEAN := false;
@@ -262,6 +274,15 @@ DECLARE
     v_refund_status TEXT := 'non_refundable';
     v_released_seat_ids UUID[];
 BEGIN
+    -- 0. Caller Identity Check
+    v_caller_id := auth.uid();
+    IF v_caller_id IS NOT NULL AND v_caller_id <> p_user_id THEN
+        IF NOT public.is_admin(v_caller_id) THEN
+            RAISE EXCEPTION 'UNAUTHORIZED_CALLER_IDENTITY'
+                USING HINT = 'Authenticated caller id does not match requested user_id';
+        END IF;
+    END IF;
+
     -- 1. ROW-LEVEL LOCK: Lock booking record
     SELECT b.*
     INTO v_booking
@@ -305,14 +326,9 @@ BEGIN
     FROM public.trips t
     WHERE t.id = v_booking.trip_id;
 
-    -- Calculate hours remaining until departure
     v_hours_until_departure := EXTRACT(EPOCH FROM (v_trip.departure_time - now())) / 3600.0;
 
-    -- Cancellation Policy:
-    -- > 24 hours: 90% refund (10% cancellation charge)
-    -- 12 to 24 hours: 75% refund (25% cancellation charge)
-    -- 2 to 12 hours: 50% refund (50% cancellation charge)
-    -- < 2 hours or after departure: 0% refund (non-refundable)
+    -- Cancellation Policy Schedule:
     IF v_hours_until_departure >= 24.0 THEN
         v_refund_percentage := 90;
         v_refund_status := 'simulated_processed';
@@ -408,3 +424,13 @@ BEGIN
 END;
 $$;
 
+-- ----------------------------------------------------------------------------
+-- 3. PERMISSION GRANTS & LEAST-PRIVILEGE SECURITY POSTURE
+-- ----------------------------------------------------------------------------
+REVOKE ALL ON FUNCTION public.create_booking_atomic(UUID, UUID, UUID[], JSONB, JSONB, TEXT) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.cancel_booking_atomic(UUID, UUID, TEXT) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.generate_pnr() FROM PUBLIC;
+
+GRANT EXECUTE ON FUNCTION public.create_booking_atomic(UUID, UUID, UUID[], JSONB, JSONB, TEXT) TO authenticated, service_role, anon;
+GRANT EXECUTE ON FUNCTION public.cancel_booking_atomic(UUID, UUID, TEXT) TO authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.generate_pnr() TO authenticated, service_role, anon;
