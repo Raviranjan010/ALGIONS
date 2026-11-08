@@ -20,7 +20,7 @@ export const QRCodeView: React.FC<QRCodeViewProps> = ({
   useEffect(() => {
     const payload =
       verificationUrl ||
-      `https://algions-transit.vercel.app/passenger/bookings?pnr=${encodeURIComponent(pnr)}`;
+      `${typeof window !== "undefined" ? window.location.origin : "https://algions-transit.vercel.app"}/verify?pnr=${encodeURIComponent(pnr)}`;
 
     QRCode.toDataURL(payload, {
       width: size,
