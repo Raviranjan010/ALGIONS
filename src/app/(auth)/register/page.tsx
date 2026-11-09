@@ -7,7 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
-import { Bus, Loader2, AlertCircle } from "lucide-react";
+import { Loader2, AlertCircle } from "lucide-react";
+import { RydvantaLogo } from "@/components/brand/RydvantaLogo";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -33,7 +34,7 @@ export default function RegisterPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Registration failed");
 
-      router.push(data.redirectUrl || "/passenger/dashboard");
+      router.push(data.redirectUrl || "/passenger/bookings");
       router.refresh();
     } catch (err: any) {
       setError(err.message || "An error occurred");
@@ -43,33 +44,41 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-[75vh] flex items-center justify-center px-4 py-12">
+    <div className="min-h-[80vh] flex items-center justify-center px-4 py-12">
       <div className="w-full max-w-md space-y-6">
-        <div className="text-center space-y-2">
-          <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-blue-600 text-white shadow-md">
-            <Bus className="w-6 h-6" />
+        <div className="text-center space-y-3">
+          <div className="flex justify-center">
+            <RydvantaLogo size="lg" showTagline={true} />
           </div>
-          <h1 className="text-2xl font-black text-slate-900 dark:text-slate-100">
+          <h1 className="text-2xl font-black text-charcoal">
             Create an Account
           </h1>
-          <p className="text-xs text-slate-500">
-            Join ALGIONS for passenger bookings or fleet management
+          <p className="text-xs text-charcoal-muted">
+            Join Rydvanta for reliable passenger bookings or fleet management
           </p>
         </div>
 
-        <Card>
+        <Card className="rounded-3xl border-charcoal-border/80 shadow-warm">
           <CardContent className="pt-6">
+            {error && (
+              <div className="mb-4 p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span>{error}</span>
+              </div>
+            )}
+
             <form onSubmit={handleRegister} className="space-y-4">
-              <div>
-                <Label className="text-xs font-semibold">Account Role</Label>
-                <div className="grid grid-cols-2 gap-3 mt-1.5">
+              {/* Account Role Selector */}
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold text-charcoal">Account Type</Label>
+                <div className="grid grid-cols-2 gap-2">
                   <button
                     type="button"
                     onClick={() => setRole("passenger")}
-                    className={`py-2 px-3 text-xs font-bold rounded-lg border text-center transition-all ${
+                    className={`py-2 text-xs font-bold rounded-xl border transition-all ${
                       role === "passenger"
-                        ? "border-blue-600 bg-blue-50 text-blue-700 shadow-xs"
-                        : "border-slate-200 text-slate-600 hover:bg-slate-50"
+                        ? "bg-terracotta text-white border-terracotta shadow-xs"
+                        : "bg-ivory-soft text-charcoal border-charcoal-border hover:bg-ivory"
                     }`}
                   >
                     Passenger
@@ -77,10 +86,10 @@ export default function RegisterPage() {
                   <button
                     type="button"
                     onClick={() => setRole("operator")}
-                    className={`py-2 px-3 text-xs font-bold rounded-lg border text-center transition-all ${
+                    className={`py-2 text-xs font-bold rounded-xl border transition-all ${
                       role === "operator"
-                        ? "border-blue-600 bg-blue-50 text-blue-700 shadow-xs"
-                        : "border-slate-200 text-slate-600 hover:bg-slate-50"
+                        ? "bg-forest text-white border-forest shadow-xs"
+                        : "bg-ivory-soft text-charcoal border-charcoal-border hover:bg-ivory"
                     }`}
                   >
                     Bus Operator
@@ -88,82 +97,72 @@ export default function RegisterPage() {
                 </div>
               </div>
 
-              <div>
-                <Label htmlFor="name" className="text-xs font-semibold">
-                  Full Name / Organization
-                </Label>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold text-charcoal">Full Name</Label>
                 <Input
-                  id="name"
-                  required
+                  placeholder="e.g. Ravi Ranjan"
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
-                  placeholder="e.g. Aditi Roy"
-                  className="mt-1"
+                  required
+                  className="h-11 text-xs font-semibold"
                 />
               </div>
 
-              <div>
-                <Label htmlFor="email" className="text-xs font-semibold">
-                  Email Address
-                </Label>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold text-charcoal">Email Address</Label>
                 <Input
-                  id="email"
                   type="email"
-                  required
+                  placeholder="name@example.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="name@example.com"
-                  className="mt-1"
+                  required
+                  className="h-11 text-xs font-semibold"
                 />
               </div>
 
-              <div>
-                <Label htmlFor="phone" className="text-xs font-semibold">
-                  Phone Number
-                </Label>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold text-charcoal">Phone Number</Label>
                 <Input
-                  id="phone"
-                  required
+                  type="tel"
+                  placeholder="+91 98765 43210"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
-                  className="mt-1"
+                  required
+                  className="h-11 text-xs font-semibold"
                 />
               </div>
 
-              <div>
-                <Label htmlFor="pass" className="text-xs font-semibold">
-                  Password
-                </Label>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold text-charcoal">Password</Label>
                 <Input
-                  id="pass"
                   type="password"
-                  required
-                  minLength={6}
+                  placeholder="Create a strong password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="mt-1"
+                  required
+                  minLength={6}
+                  className="h-11 text-xs font-semibold"
                 />
               </div>
-
-              {error && (
-                <div className="p-3 rounded-lg bg-red-50 text-red-600 text-xs flex items-center gap-2">
-                  <AlertCircle className="w-4 h-4 shrink-0" />
-                  <span>{error}</span>
-                </div>
-              )}
 
               <Button
                 type="submit"
                 disabled={loading}
-                className="w-full h-11 bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm"
+                className="w-full h-11 text-xs font-bold bg-terracotta hover:bg-terracotta-hover text-white rounded-xl shadow-xs"
               >
-                {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : "Complete Registration"}
+                {loading ? (
+                  <span className="flex items-center gap-2">
+                    <Loader2 className="w-4 h-4 animate-spin" /> Creating Account...
+                  </span>
+                ) : (
+                  "Create Account"
+                )}
               </Button>
             </form>
 
-            <div className="mt-6 text-center text-xs text-slate-500">
+            <div className="mt-5 pt-4 border-t border-charcoal-border/50 text-center text-xs text-charcoal-muted">
               Already have an account?{" "}
-              <Link href="/login" className="font-bold text-blue-600 hover:underline">
+              <Link href="/login" className="font-bold text-terracotta hover:underline">
                 Sign In
               </Link>
             </div>
@@ -173,4 +172,3 @@ export default function RegisterPage() {
     </div>
   );
 }
-

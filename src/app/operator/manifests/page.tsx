@@ -228,7 +228,6 @@ function OperatorManifestsContent() {
                   <th className="px-5 py-3.5">Age/Gender</th>
                   <th className="px-5 py-3.5">PNR Number</th>
                   <th className="px-5 py-3.5">Contact Phone</th>
-                  <th className="px-5 py-3.5">Fare</th>
                   <th className="px-5 py-3.5 text-right">Status</th>
                 </tr>
               </thead>
@@ -237,7 +236,7 @@ function OperatorManifestsContent() {
                   const isConfirmed = item.booking_status === "confirmed";
                   return (
                     <tr
-                      key={item.booking_item_id}
+                      key={`${item.booking_id}-${item.seat_number}`}
                       className={isConfirmed ? "hover:bg-ivory-light" : "bg-ivory-soft/30 opacity-60"}
                     >
                       <td className="px-5 py-3.5">
@@ -250,16 +249,13 @@ function OperatorManifestsContent() {
                         {item.passenger_name}
                       </td>
                       <td className="px-5 py-3.5 text-charcoal-muted">
-                        {item.passenger_age} yrs • {item.passenger_gender}
+                        {item.age} yrs • {item.gender}
                       </td>
                       <td className="px-5 py-3.5 font-mono font-bold text-forest">
                         {item.pnr}
                       </td>
                       <td className="px-5 py-3.5 font-mono text-charcoal-muted">
                         {item.contact_phone}
-                      </td>
-                      <td className="px-5 py-3.5 font-bold">
-                        {formatCurrency(item.fare_at_booking)}
                       </td>
                       <td className="px-5 py-3.5 text-right">
                         {isConfirmed ? (

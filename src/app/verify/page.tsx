@@ -89,6 +89,7 @@ function VerifyTicketContent() {
 
   const isValid = ticket.isValidForBoarding;
   const isCancelled = ticket.isCancelled;
+  const seatCount = ticket.seats ? ticket.seats.length : 0;
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-12 space-y-6">
@@ -192,23 +193,23 @@ function VerifyTicketContent() {
               Vehicle Reg
             </span>
             <span className="font-mono font-bold text-charcoal">
-              {ticket.vehicleRegistration}
+              {ticket.busRegistration || "N/A"}
             </span>
           </div>
         </div>
 
-        {/* Allocated Seats Count */}
+        {/* Allocated Seats Allocation */}
         <div className="flex items-center justify-between p-4 rounded-2xl bg-ivory-light border border-charcoal-border/60">
           <div>
             <span className="text-xs font-bold text-charcoal block">
               Reserved Seats Allocation
             </span>
             <span className="text-[11px] text-charcoal-muted">
-              {ticket.seatCount} {ticket.seatCount === 1 ? "seat" : "seats"} confirmed on vehicle manifest
+              {seatCount} {seatCount === 1 ? "seat" : "seats"} ({ticket.seats?.join(", ") || "Confirmed"})
             </span>
           </div>
           <span className="px-3.5 py-1 rounded-xl bg-forest text-white font-mono font-bold text-sm">
-            {ticket.seatCount} {ticket.seatCount === 1 ? "Seat" : "Seats"}
+            {seatCount} {seatCount === 1 ? "Seat" : "Seats"}
           </span>
         </div>
 

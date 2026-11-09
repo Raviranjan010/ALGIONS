@@ -67,6 +67,8 @@ export const TicketCard: React.FC<TicketCardProps> = ({
     }
   };
 
+  const passengerList = booking.passengers || [];
+
   return (
     <div className="bg-white border border-charcoal-border/80 rounded-3xl shadow-warm-lg overflow-hidden max-w-3xl mx-auto transition-all">
       {/* Ticket Top Banner */}
@@ -161,34 +163,31 @@ export const TicketCard: React.FC<TicketCardProps> = ({
           <div className="md:col-span-2 space-y-3">
             <h4 className="text-xs font-bold uppercase tracking-wider text-charcoal flex items-center gap-1.5">
               <User className="w-4 h-4 text-terracotta" />
-              Passenger Manifest ({booking.items?.length || 1})
+              Passenger Manifest ({passengerList.length})
             </h4>
 
             <div className="divide-y divide-charcoal-border/50 rounded-2xl border border-charcoal-border/70 overflow-hidden bg-white">
-              {booking.items && booking.items.length > 0 ? (
-                booking.items.map((item, idx) => (
-                  <div key={item.id} className="p-3.5 flex items-center justify-between text-xs">
+              {passengerList.length > 0 ? (
+                passengerList.map((passenger, idx) => (
+                  <div key={passenger.id || idx} className="p-3.5 flex items-center justify-between text-xs">
                     <div className="space-y-0.5">
                       <span className="font-bold text-charcoal block">
-                        {item.passenger_name || `Passenger ${idx + 1}`}
+                        {passenger.full_name || `Passenger ${idx + 1}`}
                       </span>
                       <span className="text-[11px] text-charcoal-muted">
-                        Age: {item.passenger_age || "N/A"} • Gender: {item.passenger_gender || "N/A"}
+                        Age: {passenger.age || "N/A"} • Gender: {passenger.gender || "N/A"}
                       </span>
                     </div>
                     <div className="text-right">
                       <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-terracotta text-white font-mono font-bold text-xs shadow-xs">
                         <Armchair className="w-3.5 h-3.5" />
-                        Seat {item.seat?.seat_number || "N/A"}
-                      </span>
-                      <span className="text-[11px] text-charcoal-muted block mt-0.5 font-medium">
-                        {formatCurrency(item.fare_at_booking)}
+                        Seat {passenger.seat_number}
                       </span>
                     </div>
                   </div>
                 ))
               ) : (
-                <div className="p-3 text-xs text-charcoal-muted">No itemized details</div>
+                <div className="p-3 text-xs text-charcoal-muted">Confirmed reservation</div>
               )}
             </div>
 
@@ -216,7 +215,7 @@ export const TicketCard: React.FC<TicketCardProps> = ({
           <div>
             <span className="text-xs text-charcoal-muted font-medium block">Total Paid (Inclusive of GST)</span>
             <span className="text-2xl font-black text-charcoal">
-              {formatCurrency(booking.total_amount)}
+              {formatCurrency(booking.total_fare)}
             </span>
           </div>
 
@@ -251,7 +250,7 @@ export const TicketCard: React.FC<TicketCardProps> = ({
               <span>Booking Cancelled on {formatDate(booking.cancellation.created_at)}</span>
             </div>
             <p className="text-charcoal-muted">
-              Refund Amount: <strong>{formatCurrency(booking.cancellation.refund_amount)}</strong> • Cancellation Fee: {formatCurrency(booking.cancellation.cancellation_fee)}
+              Refund Amount: <strong>{formatCurrency(booking.cancellation.refund_amount)}</strong> ({booking.cancellation.refund_percentage}% of fare)
             </p>
             <p className="text-[11px] text-charcoal-muted">
               Refund Status: <strong>{booking.cancellation.refund_status.toUpperCase()}</strong> (Simulated instant refund completed)

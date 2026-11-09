@@ -1,3 +1,5 @@
+"use client";
+
 import React from "react";
 import { SearchForm } from "@/components/search/SearchForm";
 import { Armchair, ShieldCheck, Zap } from "lucide-react";
@@ -12,11 +14,6 @@ export const HeroSection: React.FC = () => {
           src="/images/hero-bg.jpg"
           alt="Rydvanta Luxury Coach on Mountain Scenic Highway"
           className="w-full h-full object-cover object-right sm:object-center opacity-85"
-          onError={(e) => {
-            // High-resolution fallback of scenic coach on highway
-            (e.target as HTMLImageElement).src =
-              "https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?auto=format&fit=crop&w=2000&q=80";
-          }}
         />
         {/* Left Dark Forest Gradient Overlay so typography is 100% crisp & readable */}
         <div className="absolute inset-0 bg-gradient-to-r from-forest-dark via-forest/90 to-transparent sm:w-3/5" />

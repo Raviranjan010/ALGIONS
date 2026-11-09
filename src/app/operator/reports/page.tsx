@@ -168,7 +168,7 @@ export default function OperatorReportsPage() {
                         {report.trip_code}
                       </td>
                       <td className="px-5 py-4 font-bold">
-                        {report.origin_city} → {report.destination_city}
+                        {report.route_name}
                       </td>
                       <td className="px-5 py-4">
                         <span className="font-bold text-charcoal">{formatTime(report.departure_time)}</span>
