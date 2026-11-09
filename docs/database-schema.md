@@ -171,32 +171,46 @@ erDiagram
 ## 3. Database Functions & Triggers
 
 ### 3.1 `create_booking_atomic`
-- **Security**: `SECURITY DEFINER`
+- **Security**: `SECURITY DEFINER`, `SET search_path = pg_catalog, public`
+- **Permissions**: `REVOKE ALL FROM PUBLIC, anon; GRANT EXECUTE TO authenticated, service_role;`
 - **Parameters**: `p_trip_id UUID, p_user_id UUID, p_seat_ids UUID[], p_passengers JSONB, p_contact JSONB, p_idempotency_key TEXT`
 - **Execution Flow**:
-  1. Checks idempotency: if key exists and payload matches, replays previous booking; if payload differs, raises error.
-  2. Validates trip status (`scheduled` / `boarding`) and departure time > `now()`.
-  3. Validates seat selections (rejects duplicates within request).
-  4. Locks `trip_seats` using `SELECT ... WHERE id = ANY(p_seat_ids) AND trip_id = p_trip_id AND status = 'available' FOR UPDATE`.
-  5. Verifies locked seats count matches requested count; throws `SEAT_NOT_AVAILABLE` if conflict.
-  6. Generates unique PNR (`ALG-XXXXXX`).
-  7. Inserts `bookings`, `booking_passengers`, and `booking_seats` (with `is_active = true`).
-  8. Updates `trip_seats` status to `booked`.
-  9. Inserts `audit_logs` record.
-  10. Returns confirmed booking record.
+  1. Enforces caller identity: verifies `auth.uid() = p_user_id` or caller is admin; blocks anonymous callers with `UNAUTHENTICATED`.
+  2. Checks idempotency: if key exists and payload matches, replays previous booking; if payload differs, raises error.
+  3. Validates trip status (`scheduled` / `boarding`) and departure time > `now()`.
+  4. Validates seat selections (rejects duplicates within request).
+  5. **Deterministic Row-Level Lock**: Executes `PERFORM id FROM public.trip_seats WHERE id = ANY(p_seat_ids) AND trip_id = p_trip_id AND status = 'available' ORDER BY id FOR UPDATE` to avoid PostgreSQL aggregate `FOR UPDATE` restrictions and prevent deadlocks.
+  6. Calculates count and fare from locked tuples; verifies count matches requested count; throws `SEAT_NOT_AVAILABLE` on conflict.
+  7. Generates unique PNR (`ALG-XXXXXX`).
+  8. Inserts `bookings`, `booking_passengers`, and `booking_seats` (with `is_active = true`).
+  9. Updates `trip_seats` status to `booked`.
+  10. Inserts `audit_logs` record.
+  11. Returns confirmed booking record.
 
 ### 3.2 `cancel_booking_atomic`
-- **Security**: `SECURITY DEFINER`
+- **Security**: `SECURITY DEFINER`, `SET search_path = pg_catalog, public`
+- **Permissions**: `REVOKE ALL FROM PUBLIC, anon; GRANT EXECUTE TO authenticated, service_role;`
 - **Parameters**: `p_booking_id UUID, p_user_id UUID, p_reason TEXT`
 - **Execution Flow**:
-  1. Acquires row lock on booking record `FOR UPDATE`.
-  2. Verifies ownership (passenger owns ticket or user is operator/admin).
-  3. Verifies status is `confirmed`.
-  4. Calculates hours until departure and applies tiered refund policy (>24h: 90%, 12-24h: 75%, 2-12h: 50%, <2h: 0%).
-  5. Updates `booking_seats` setting `is_active = false`.
-  6. Updates `trip_seats` setting `status = 'available'`.
-  7. Updates `bookings` status to `cancelled`.
-  8. Inserts `cancellations` record.
-  9. Inserts `audit_logs` record.
-  10. Returns cancellation details.
+  1. Enforces caller identity check.
+  2. Acquires row lock on booking record `FOR UPDATE`.
+  3. Verifies ownership (passenger owns ticket or user is operator/admin).
+  4. Verifies status is `confirmed`.
+  5. Calculates hours until departure and applies tiered refund policy (>24h: 90%, 12-24h: 75%, 2-12h: 50%, <2h: 0%).
+  6. Updates `booking_seats` setting `is_active = false`.
+  7. Updates `trip_seats` setting `status = 'available'`.
+  8. Updates `bookings` status to `cancelled`.
+  9. Inserts `cancellations` record.
+  10. Inserts `audit_logs` record.
+  11. Returns cancellation details.
+
+### 3.3 `verify_ticket_by_pnr`
+- **Security**: `SECURITY DEFINER`, `SET search_path = pg_catalog, public`, `STABLE`
+- **Permissions**: `GRANT EXECUTE TO anon, authenticated, service_role;`
+- **Parameters**: `p_pnr TEXT`
+- **Execution Flow**:
+  1. Queries booking, trip, route, operator, vehicle, and active assigned seat numbers for the given PNR.
+  2. Formats sanitized operational boarding metadata (`found`, `pnr`, `status`, `isValidForBoarding`, `originCity`, `destinationCity`, `departureTime`, `arrivalTime`, `operatorName`, `busModel`, `seats`, `isCancelled`).
+  3. Omits all passenger PII, contact info, and pricing to protect user privacy during public QR verification.
+
 

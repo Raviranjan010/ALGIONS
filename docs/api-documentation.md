@@ -67,11 +67,36 @@ All API endpoints are implemented as Next.js Route Handlers with strict Zod requ
   - `409 Conflict`: Seat already booked or conflicting concurrent transaction.
   - `400 Bad Request`: Validation failure.
 
-### 1.4 Get Booking by PNR
+### 1.4 Get Booking by PNR (Authenticated / Passenger View)
 - **Endpoint**: `GET /api/bookings/pnr/[pnr]`
-- **Response `200 OK`**: Returns full ticket details, passengers, seats, and cancellation status.
+- **Response `200 OK`**: Returns full ticket details, passengers, seats, contact details, and cancellation status.
 
-### 1.5 Cancel Booking
+### 1.5 Public Ticket Verification (Zero-PII Boarding Check)
+- **Endpoint**: `GET /api/bookings/verify/[pnr]`
+- **Description**: Public read-only verification endpoint used by scannable QR codes. Returns operational boarding status and seat assignments while strictly withholding all passenger PII, contact info, and fares.
+- **Response `200 OK`**:
+  ```json
+  {
+    "success": true,
+    "data": {
+      "found": true,
+      "pnr": "ALG-K92XLM",
+      "status": "confirmed",
+      "isValidForBoarding": true,
+      "originCity": "Mumbai",
+      "destinationCity": "Pune",
+      "departureTime": "2026-02-15T14:00:00.000Z",
+      "arrivalTime": "2026-02-15T17:30:00.000Z",
+      "operatorName": "Royal Express Travels",
+      "busModel": "Volvo 9600 Multi-Axle",
+      "busRegistration": "MH-01-CV-9901",
+      "seats": ["L1A", "L1B"],
+      "isCancelled": false
+    }
+  }
+  ```
+
+### 1.6 Cancel Booking
 - **Endpoint**: `POST /api/cancellations`
 - **Request Body**:
   ```json

@@ -38,9 +38,79 @@ PostgreSQL RLS is enabled on all 15 tables in the public schema:
 
 ---
 
-## 4. Database Security & Transaction Safety
-- **`SECURITY DEFINER` Functions**:
-  - Both `create_booking_atomic` and `cancel_booking_atomic` are configured with `SET search_path = public` to prevent search-path injection exploits.
-- **Double-Booking Prevention**:
-  - Row-level lock: `SELECT ... FOR UPDATE` acquires an exclusive row lock on the requested seats.
-  - Partial unique index: `CREATE UNIQUE INDEX idx_booking_seats_active_trip_seat ON public.booking_seats(trip_seat_id) WHERE (is_active = true)` prevents race conditions at the database constraint level.
+## 4. Hardened RPC Security & Least-Privilege Execution Model
+
+### 4.1 Strict Caller Identity Enforcement
+- The booking engine function `public.create_booking_atomic` enforces authenticated caller verification via `auth.uid()`.
+- If an authenticated user attempts to pass a different `p_user_id`, the function verifies whether the caller is a system administrator (`is_admin(auth.uid())`). If not, it aborts with `UNAUTHORIZED_CALLER_IDENTITY`.
+- Anonymous callers (`auth.uid() IS NULL` and JWT claim role ≠ `'service_role'`) are immediately rejected with `UNAUTHENTICATED`.
+- The passenger identity recorded in `bookings` is derived directly from `auth.uid()`, preventing client-side user spoofing.
+
+### 4.2 Least-Privilege Function Permissions
+- `REVOKE ALL ON FUNCTION public.create_booking_atomic FROM PUBLIC, anon;`
+- `GRANT EXECUTE ON FUNCTION public.create_booking_atomic TO authenticated, service_role;`
+- `REVOKE ALL ON FUNCTION public.cancel_booking_atomic FROM PUBLIC, anon;`
+- `GRANT EXECUTE ON FUNCTION public.cancel_booking_atomic TO authenticated, service_role;`
+- `REVOKE ALL ON FUNCTION public.generate_pnr FROM PUBLIC, anon, authenticated;`
+- `GRANT EXECUTE ON FUNCTION public.generate_pnr TO service_role;` (Internal helper called by `SECURITY DEFINER`).
+
+### 4.3 Search-Path Injection Defense
+- All database functions explicitly define `SET search_path = pg_catalog, public` to prevent schema hijacking and unauthorized object overrides in `SECURITY DEFINER` execution contexts.
+
+---
+
+## 5. Privacy-Preserving Public Ticket Verification (`/verify`)
+
+A scannable QR code on a boarding pass must permit verification by conductors or transit authorities without leaking sensitive passenger PII (Personally Identifiable Information).
+
+### Architecture:
+1. **Public Read-Only RPC (`verify_ticket_by_pnr`)**:
+   - Granted to `anon`, `authenticated`, and `service_role`.
+   - Returns ONLY operational boarding status:
+     - `pnr`: Unique alphanumeric booking code.
+     - `status`: Booking state (`confirmed` / `cancelled`).
+     - `isValidForBoarding`: Boolean flag.
+     - `originCity` & `destinationCity`: Route corridor.
+     - `departureTime` & `arrivalTime`: Timestamps.
+     - `operatorName` & `busModel`: Vehicle details.
+     - `seats`: Array of allocated seat numbers (e.g., `["1A", "1B"]`).
+     - `cancelledAt`: Timestamp if revoked.
+2. **Strict PII Exclusion**:
+   - Passenger full names, ages, and genders are **completely omitted**.
+   - Contact phone numbers and email addresses are **completely omitted**.
+   - Transaction pricing, base fares, and total amounts paid are **completely omitted**.
+3. **Public API Endpoint (`/api/bookings/verify/[pnr]`)**:
+   - Lightweight, rate-limited public endpoint serving the sanitized verification JSON.
+
+---
+
+## 6. Concurrency & Double-Booking Elimination Architecture
+
+### 6.1 Row-Level Exclusive Locking (`FOR UPDATE`)
+- In PostgreSQL, `FOR UPDATE` cannot be applied directly to aggregate queries (`count(*)`, `sum(fare)`).
+- The ALGIONS engine solves this with a two-phase transaction sequence:
+  1. **Phase 1: Deterministic Tuple Locking**:
+     ```sql
+     PERFORM id FROM public.trip_seats
+     WHERE id = ANY(p_seat_ids) AND trip_id = p_trip_id AND status = 'available'
+     ORDER BY id
+     FOR UPDATE;
+     ```
+     Locking rows individually with deterministic `ORDER BY id` prevents deadlocks when concurrent transactions request overlapping sets of seats.
+  2. **Phase 2: Availability & Fare Calculation**:
+     ```sql
+     SELECT count(*), coalesce(sum(fare), 0)
+     INTO v_locked_seats_count, v_total_fare
+     FROM public.trip_seats
+     WHERE id = ANY(p_seat_ids) AND trip_id = p_trip_id AND status = 'available';
+     ```
+     If `v_locked_seats_count <> array_length(p_seat_ids, 1)`, the transaction aborts with `SEAT_NOT_AVAILABLE`.
+
+### 6.2 Storage-Level Defense-in-Depth Invariant
+- Even if an application bug or direct SQL bypass attempts a concurrent write, PostgreSQL enforces a partial unique index:
+  ```sql
+  CREATE UNIQUE INDEX idx_booking_seats_active_trip_seat 
+  ON public.booking_seats (trip_seat_id) 
+  WHERE (is_active = true);
+  ```
+- This guarantees that two active bookings can never reference the same seat simultaneously under any isolation level.

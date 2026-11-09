@@ -14,6 +14,7 @@ import {
   AuditLog,
   PassengerManifestItem,
   OccupancyReport,
+  PublicTicketVerification,
 } from "@/types";
 
 // Seed Identifiers
@@ -704,6 +705,29 @@ export class InMemoryDatabase {
       }
     }
     return null;
+  }
+
+  public verifyTicketByPnr(pnr: string): PublicTicketVerification | null {
+    const booking = this.getBookingByPnr(pnr);
+    if (!booking) return null;
+
+    const seatNumbers = (booking.seats || []).map((s) => s.seat_number).sort();
+    return {
+      found: true,
+      pnr: booking.pnr,
+      status: booking.status,
+      isValidForBoarding: booking.status === "confirmed",
+      originCity: booking.trip?.route?.origin_city || "Unknown",
+      destinationCity: booking.trip?.route?.destination_city || "Unknown",
+      departureTime: booking.trip?.departure_time || "",
+      arrivalTime: booking.trip?.arrival_time || "",
+      operatorName: booking.trip?.operator?.name || "ALGIONS Partner Operator",
+      busModel: booking.trip?.vehicle?.model || "Standard Express",
+      busRegistration: booking.trip?.vehicle?.registration_number,
+      seats: seatNumbers,
+      isCancelled: booking.status === "cancelled",
+      cancelledAt: booking.cancellation?.created_at,
+    };
   }
 
   public getTripById(tripId: string): Trip | null {

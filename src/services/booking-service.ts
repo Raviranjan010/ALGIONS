@@ -1,5 +1,5 @@
 import { db } from "@/lib/database/in-memory-store";
-import { Booking } from "@/types";
+import { Booking, PublicTicketVerification } from "@/types";
 import { CreateBookingInput } from "@/lib/validation/schemas";
 
 export class BookingService {
@@ -25,8 +25,11 @@ export class BookingService {
     return db.getBookingByPnr(pnr);
   }
 
+  public static async verifyTicket(pnr: string): Promise<PublicTicketVerification | null> {
+    return db.verifyTicketByPnr(pnr);
+  }
+
   public static async getPassengerBookings(userId: string): Promise<Booking[]> {
     return db.getPassengerBookings(userId);
   }
 }
-

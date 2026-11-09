@@ -220,3 +220,22 @@ export interface OccupancyReport {
   cancelled_revenue: number;
   net_revenue: number;
 }
+
+export interface PublicTicketVerification {
+  found: boolean;
+  pnr: string;
+  status: BookingStatus;
+  isValidForBoarding: boolean;
+  originCity: string;
+  destinationCity: string;
+  departureTime: string;
+  arrivalTime: string;
+  operatorName: string;
+  busModel: string;
+  busRegistration?: string;
+  seats: string[];
+  isCancelled: boolean;
+  cancelledAt?: string;
+  error?: string;
+}
+

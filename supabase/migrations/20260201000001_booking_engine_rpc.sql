@@ -2,7 +2,8 @@
 -- ALGIONS BUS BOOKING MANAGEMENT SYSTEM
 -- Migration: 20260201000001_booking_engine_rpc.sql
 -- Description: Transactional PostgreSQL RPC functions with enterprise security,
---              caller identity verification, row-level seat locking, and idempotent cancellation.
+--              caller identity verification, row-level seat locking (aggregate-free),
+--              idempotent cancellation, and privacy-safe ticket verification.
 -- ============================================================================
 
 -- Function to generate a secure random PNR code: ALG-XXXXXX
@@ -10,7 +11,7 @@ CREATE OR REPLACE FUNCTION public.generate_pnr()
 RETURNS TEXT
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public
+SET search_path = pg_catalog, public
 AS $$
 DECLARE
     chars TEXT := '23456789ABCDEFGHJKLMNPQRSTUVWXYZ'; -- omit ambiguous chars (0,1,I,O)
@@ -38,10 +39,11 @@ CREATE OR REPLACE FUNCTION public.create_booking_atomic(
 RETURNS JSONB
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public
+SET search_path = pg_catalog, public
 AS $$
 DECLARE
     v_caller_id UUID;
+    v_effective_user_id UUID;
     v_trip RECORD;
     v_existing_booking RECORD;
     v_new_booking_id UUID;
@@ -52,14 +54,35 @@ DECLARE
     v_idx INTEGER;
 BEGIN
     -- 0. Caller Identity & Authorization Hardening
-    -- If executed within Supabase Auth context, ensure caller matches p_user_id
+    -- In Supabase, auth.uid() returns the authenticated user's UUID from the JWT.
     v_caller_id := auth.uid();
-    IF v_caller_id IS NOT NULL AND v_caller_id <> p_user_id THEN
-        -- Allow if caller is system administrator
-        IF NOT public.is_admin(v_caller_id) THEN
-            RAISE EXCEPTION 'UNAUTHORIZED_CALLER_IDENTITY'
-                USING HINT = 'Authenticated caller id does not match requested user_id';
+
+    IF v_caller_id IS NOT NULL THEN
+        -- Authenticated user context:
+        -- The booking MUST be assigned to the authenticated user unless the caller is an admin.
+        IF p_user_id IS NOT NULL AND p_user_id <> v_caller_id THEN
+            IF NOT public.is_admin(v_caller_id) THEN
+                RAISE EXCEPTION 'UNAUTHORIZED_CALLER_IDENTITY'
+                    USING HINT = 'Authenticated caller id does not match requested user_id';
+            END IF;
+            v_effective_user_id := p_user_id;
+        ELSE
+            v_effective_user_id := v_caller_id;
         END IF;
+    ELSE
+        -- Anonymous callers are explicitly disallowed from creating bookings.
+        -- Only trusted server-side execution via service_role is allowed without auth.uid().
+        IF coalesce(current_setting('request.jwt.claim.role', true), '') <> 'service_role' THEN
+            RAISE EXCEPTION 'UNAUTHENTICATED'
+                USING HINT = 'Booking creation requires an authenticated user session';
+        END IF;
+
+        IF p_user_id IS NULL THEN
+            RAISE EXCEPTION 'INVALID_USER_ID'
+                USING HINT = 'User ID must be explicitly provided for server-side bookings';
+        END IF;
+
+        v_effective_user_id := p_user_id;
     END IF;
 
     -- 1. Idempotency Check
@@ -71,7 +94,7 @@ BEGIN
 
         IF FOUND THEN
             -- Verify payload consistency
-            IF v_existing_booking.trip_id = p_trip_id AND v_existing_booking.user_id = p_user_id THEN
+            IF v_existing_booking.trip_id = p_trip_id AND v_existing_booking.user_id = v_effective_user_id THEN
                 RETURN jsonb_build_object(
                     'success', true,
                     'is_idempotent_replay', true,
@@ -117,15 +140,23 @@ BEGIN
     END IF;
 
     -- 4. ROW-LEVEL LOCKING: Lock requested trip_seats records FOR UPDATE
-    -- This enforces strict serializability and prevents any concurrent transaction
-    -- from selecting or modifying these seats simultaneously.
+    -- Note: In PostgreSQL, FOR UPDATE cannot be combined with aggregate functions (count, sum).
+    -- Therefore, we first lock individual rows in deterministic ORDER BY id to eliminate deadlocks.
+    PERFORM id
+    FROM public.trip_seats
+    WHERE id = ANY(p_seat_ids)
+      AND trip_id = p_trip_id
+      AND status = 'available'
+    ORDER BY id
+    FOR UPDATE;
+
+    -- Now compute count and total fare of the locked available seats
     SELECT count(*), coalesce(sum(fare), 0)
     INTO v_locked_seats_count, v_total_fare
     FROM public.trip_seats
     WHERE id = ANY(p_seat_ids)
       AND trip_id = p_trip_id
-      AND status = 'available'
-    FOR UPDATE;
+      AND status = 'available';
 
     -- If count of locked available seats doesn't match requested count,
     -- at least one seat is already booked or doesn't belong to this trip.
@@ -162,7 +193,7 @@ BEGIN
     ) VALUES (
         v_pnr,
         p_trip_id,
-        p_user_id,
+        v_effective_user_id,
         p_contact->>'name',
         p_contact->>'email',
         p_contact->>'phone',
@@ -225,7 +256,7 @@ BEGIN
         entity_id,
         details
     ) VALUES (
-        p_user_id,
+        v_effective_user_id,
         'BOOKING_CREATED',
         'booking',
         v_new_booking_id::text,
@@ -237,7 +268,7 @@ BEGIN
         )
     );
 
-    -- 11. Return Confirmed Booking
+    -- 11. Return Confirmed Booking Result
     RETURN jsonb_build_object(
         'success', true,
         'is_idempotent_replay', false,
@@ -261,10 +292,11 @@ CREATE OR REPLACE FUNCTION public.cancel_booking_atomic(
 RETURNS JSONB
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public
+SET search_path = pg_catalog, public
 AS $$
 DECLARE
     v_caller_id UUID;
+    v_effective_user_id UUID;
     v_booking RECORD;
     v_trip RECORD;
     v_is_authorized BOOLEAN := false;
@@ -276,11 +308,29 @@ DECLARE
 BEGIN
     -- 0. Caller Identity Check
     v_caller_id := auth.uid();
-    IF v_caller_id IS NOT NULL AND v_caller_id <> p_user_id THEN
-        IF NOT public.is_admin(v_caller_id) THEN
-            RAISE EXCEPTION 'UNAUTHORIZED_CALLER_IDENTITY'
-                USING HINT = 'Authenticated caller id does not match requested user_id';
+
+    IF v_caller_id IS NOT NULL THEN
+        IF p_user_id IS NOT NULL AND p_user_id <> v_caller_id THEN
+            IF NOT public.is_admin(v_caller_id) THEN
+                RAISE EXCEPTION 'UNAUTHORIZED_CALLER_IDENTITY'
+                    USING HINT = 'Authenticated caller id does not match requested user_id';
+            END IF;
+            v_effective_user_id := p_user_id;
+        ELSE
+            v_effective_user_id := v_caller_id;
         END IF;
+    ELSE
+        IF coalesce(current_setting('request.jwt.claim.role', true), '') <> 'service_role' THEN
+            RAISE EXCEPTION 'UNAUTHENTICATED'
+                USING HINT = 'Cancellation requires an authenticated user session';
+        END IF;
+
+        IF p_user_id IS NULL THEN
+            RAISE EXCEPTION 'INVALID_USER_ID'
+                USING HINT = 'User ID must be provided for server-side cancellation';
+        END IF;
+
+        v_effective_user_id := p_user_id;
     END IF;
 
     -- 1. ROW-LEVEL LOCK: Lock booking record
@@ -304,15 +354,15 @@ BEGIN
     END IF;
 
     -- 3. Authorization Check (Owner, Operator Member, or Admin)
-    IF v_booking.user_id = p_user_id THEN
+    IF v_booking.user_id = v_effective_user_id THEN
         v_is_authorized := true;
-    ELSIF public.is_admin(p_user_id) THEN
+    ELSIF public.is_admin(v_effective_user_id) THEN
         v_is_authorized := true;
     ELSE
         SELECT EXISTS (
             SELECT 1 FROM public.trips t
             JOIN public.operator_members om ON om.operator_id = t.operator_id
-            WHERE t.id = v_booking.trip_id AND om.user_id = p_user_id
+            WHERE t.id = v_booking.trip_id AND om.user_id = v_effective_user_id
         ) INTO v_is_authorized;
     END IF;
 
@@ -381,7 +431,7 @@ BEGIN
         created_at
     ) VALUES (
         p_booking_id,
-        p_user_id,
+        v_effective_user_id,
         p_reason,
         v_refund_percentage,
         v_refund_amount,
@@ -397,7 +447,7 @@ BEGIN
         entity_id,
         details
     ) VALUES (
-        p_user_id,
+        v_effective_user_id,
         'BOOKING_CANCELLED',
         'booking',
         p_booking_id::text,
@@ -425,12 +475,102 @@ END;
 $$;
 
 -- ----------------------------------------------------------------------------
--- 3. PERMISSION GRANTS & LEAST-PRIVILEGE SECURITY POSTURE
+-- 3. PRIVACY-PRESERVING PUBLIC TICKET VERIFICATION RPC
+-- Returns ONLY non-PII operational fields for boarding authenticity validation.
+-- Explicitly omits: Passenger names, age, gender, phone numbers, email, total fare.
 -- ----------------------------------------------------------------------------
-REVOKE ALL ON FUNCTION public.create_booking_atomic(UUID, UUID, UUID[], JSONB, JSONB, TEXT) FROM PUBLIC;
-REVOKE ALL ON FUNCTION public.cancel_booking_atomic(UUID, UUID, TEXT) FROM PUBLIC;
-REVOKE ALL ON FUNCTION public.generate_pnr() FROM PUBLIC;
+CREATE OR REPLACE FUNCTION public.verify_ticket_by_pnr(p_pnr TEXT)
+RETURNS JSONB
+LANGUAGE plpgsql
+STABLE
+SECURITY DEFINER
+SET search_path = pg_catalog, public
+AS $$
+DECLARE
+    v_booking RECORD;
+    v_seats TEXT[];
+    v_cancellation RECORD;
+BEGIN
+    -- Query booking with associated trip, route, vehicle, and operator
+    SELECT 
+        b.id,
+        b.pnr,
+        b.status,
+        t.departure_time,
+        t.arrival_time,
+        r.origin_city,
+        r.destination_city,
+        o.name AS operator_name,
+        v.model AS bus_model,
+        v.registration_number AS bus_reg
+    INTO v_booking
+    FROM public.bookings b
+    JOIN public.trips t ON t.id = b.trip_id
+    JOIN public.routes r ON r.id = t.route_id
+    JOIN public.operators o ON o.id = t.operator_id
+    LEFT JOIN public.vehicles v ON v.id = t.vehicle_id
+    WHERE b.pnr = trim(upper(p_pnr));
 
-GRANT EXECUTE ON FUNCTION public.create_booking_atomic(UUID, UUID, UUID[], JSONB, JSONB, TEXT) TO authenticated, service_role, anon;
+    IF NOT FOUND THEN
+        RETURN jsonb_build_object(
+            'found', false,
+            'error', 'Ticket not found for specified PNR'
+        );
+    END IF;
+
+    -- Retrieve assigned seat numbers
+    SELECT array_agg(seat_number ORDER BY seat_number)
+    INTO v_seats
+    FROM public.booking_seats
+    WHERE booking_id = v_booking.id;
+
+    -- If cancelled, retrieve cancellation timestamp
+    IF v_booking.status = 'cancelled' THEN
+        SELECT created_at
+        INTO v_cancellation
+        FROM public.cancellations
+        WHERE booking_id = v_booking.id
+        ORDER BY created_at DESC
+        LIMIT 1;
+    END IF;
+
+    RETURN jsonb_build_object(
+        'found', true,
+        'pnr', v_booking.pnr,
+        'status', v_booking.status,
+        'isValidForBoarding', (v_booking.status = 'confirmed'),
+        'originCity', v_booking.origin_city,
+        'destinationCity', v_booking.destination_city,
+        'departureTime', v_booking.departure_time,
+        'arrivalTime', v_booking.arrival_time,
+        'operatorName', v_booking.operator_name,
+        'busModel', v_booking.bus_model,
+        'busRegistration', v_booking.bus_reg,
+        'seats', coalesce(v_seats, ARRAY[]::TEXT[]),
+        'isCancelled', (v_booking.status = 'cancelled'),
+        'cancelledAt', v_cancellation.created_at
+    );
+END;
+$$;
+
+-- ----------------------------------------------------------------------------
+-- 4. PERMISSION GRANTS & LEAST-PRIVILEGE SECURITY POSTURE
+-- ----------------------------------------------------------------------------
+-- Revoke all permissions from PUBLIC and anon by default
+REVOKE ALL ON FUNCTION public.create_booking_atomic(UUID, UUID, UUID[], JSONB, JSONB, TEXT) FROM PUBLIC, anon;
+REVOKE ALL ON FUNCTION public.cancel_booking_atomic(UUID, UUID, TEXT) FROM PUBLIC, anon;
+REVOKE ALL ON FUNCTION public.generate_pnr() FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.verify_ticket_by_pnr(TEXT) FROM PUBLIC;
+
+-- Explicit least-privilege grants:
+-- create_booking_atomic: Only authenticated users and server-side service_role
+GRANT EXECUTE ON FUNCTION public.create_booking_atomic(UUID, UUID, UUID[], JSONB, JSONB, TEXT) TO authenticated, service_role;
+
+-- cancel_booking_atomic: Only authenticated users and server-side service_role
 GRANT EXECUTE ON FUNCTION public.cancel_booking_atomic(UUID, UUID, TEXT) TO authenticated, service_role;
-GRANT EXECUTE ON FUNCTION public.generate_pnr() TO authenticated, service_role, anon;
+
+-- generate_pnr: Internal function, only service_role (create_booking_atomic executes as SECURITY DEFINER owner)
+GRANT EXECUTE ON FUNCTION public.generate_pnr() TO service_role;
+
+-- verify_ticket_by_pnr: Public read-only verification (safe for anonymous QR scanners, conductors, and passengers)
+GRANT EXECUTE ON FUNCTION public.verify_ticket_by_pnr(TEXT) TO anon, authenticated, service_role;
