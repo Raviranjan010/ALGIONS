@@ -56,3 +56,4 @@ export const TrustBenefits: React.FC = () => {
     </section>
   );
 };
+

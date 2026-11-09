@@ -119,3 +119,4 @@ export const RydvantaLogo: React.FC<RydvantaLogoProps> = ({
 
   return content;
 };
+
