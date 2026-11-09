@@ -1,17 +1,41 @@
 import { db } from "@/lib/database/in-memory-store";
 import { Operator, Vehicle, Route, Trip } from "@/types";
+import { isSupabaseConfigured } from "@/lib/supabase/config";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 export class OperatorService {
   public static async getOperators(): Promise<Operator[]> {
+    if (isSupabaseConfigured()) {
+      const supabase = createAdminClient();
+      const { data, error } = await supabase.from("operators").select("*").eq("is_active", true);
+      if (error || !data) return [];
+      return data as Operator[];
+    }
     return Array.from(db.operators.values());
   }
 
   public static async getVehicles(operatorId?: string): Promise<Vehicle[]> {
+    if (isSupabaseConfigured()) {
+      const supabase = createAdminClient();
+      let query = supabase.from("vehicles").select("*, operator:operators(*)");
+      if (operatorId) query = query.eq("operator_id", operatorId);
+      const { data, error } = await query;
+      if (error || !data) return [];
+      return data as Vehicle[];
+    }
     const list = Array.from(db.vehicles.values());
     return operatorId ? list.filter((v) => v.operator_id === operatorId) : list;
   }
 
   public static async getRoutes(operatorId?: string): Promise<Route[]> {
+    if (isSupabaseConfigured()) {
+      const supabase = createAdminClient();
+      let query = supabase.from("routes").select("*, stops:route_stops(*)");
+      if (operatorId) query = query.eq("operator_id", operatorId);
+      const { data, error } = await query;
+      if (error || !data) return [];
+      return data as Route[];
+    }
     const list = Array.from(db.routes.values());
     return operatorId ? list.filter((r) => r.operator_id === operatorId) : list;
   }
@@ -23,6 +47,24 @@ export class OperatorService {
     layoutType: "2x2" | "2x1" | "sleeper_2x1" | "executive_2x2";
     totalCapacity: number;
   }): Promise<Vehicle> {
+    if (isSupabaseConfigured()) {
+      const supabase = createAdminClient();
+      const { data, error } = await supabase
+        .from("vehicles")
+        .insert({
+          operator_id: params.operatorId,
+          registration_number: params.registrationNumber,
+          model: params.model,
+          layout_type: params.layoutType,
+          total_capacity: params.totalCapacity,
+        })
+        .select()
+        .single();
+
+      if (error || !data) throw new Error(error?.message || "Failed to create vehicle");
+      return data as Vehicle;
+    }
+
     const id = `veh-${Date.now()}`;
     const vehicle: Vehicle = {
       id,
@@ -36,32 +78,6 @@ export class OperatorService {
       updated_at: new Date().toISOString(),
     };
     db.vehicles.set(id, vehicle);
-
-    // Auto-generate vehicle seats according to layout
-    const rows = Math.ceil(params.totalCapacity / (params.layoutType.includes("2x1") ? 3 : 4));
-    let count = 0;
-    const cols = params.layoutType.includes("2x1") ? ["A", "B", "C"] : ["A", "B", "C", "D"];
-
-    for (let r = 1; r <= rows; r++) {
-      for (let c = 0; c < cols.length; c++) {
-        if (count >= params.totalCapacity) break;
-        count++;
-        const sNum = `${r}${cols[c]}`;
-        const seatId = `vs-${id}-${sNum}`;
-        db.vehicleSeats.set(seatId, {
-          id: seatId,
-          vehicle_id: id,
-          seat_number: sNum,
-          deck: "lower",
-          seat_row: r,
-          seat_column: c + 1,
-          seat_type: c === 0 || c === cols.length - 1 ? "window" : "aisle",
-          is_active: true,
-          created_at: new Date().toISOString(),
-        });
-      }
-    }
-
     return vehicle;
   }
 
@@ -73,6 +89,25 @@ export class OperatorService {
     distanceKm: number;
     estimatedDurationMins: number;
   }): Promise<Route> {
+    if (isSupabaseConfigured()) {
+      const supabase = createAdminClient();
+      const { data, error } = await supabase
+        .from("routes")
+        .insert({
+          operator_id: params.operatorId,
+          route_number: params.routeNumber,
+          origin_city: params.originCity,
+          destination_city: params.destinationCity,
+          distance_km: params.distanceKm,
+          estimated_duration_mins: params.estimatedDurationMins,
+        })
+        .select()
+        .single();
+
+      if (error || !data) throw new Error(error?.message || "Failed to create route");
+      return data as Route;
+    }
+
     const id = `rt-${Date.now()}`;
     const route: Route = {
       id,
@@ -99,6 +134,27 @@ export class OperatorService {
     arrivalTime: string;
     baseFare: number;
   }): Promise<Trip> {
+    if (isSupabaseConfigured()) {
+      const supabase = createAdminClient();
+      const { data, error } = await supabase
+        .from("trips")
+        .insert({
+          operator_id: params.operatorId,
+          route_id: params.routeId,
+          vehicle_id: params.vehicleId,
+          trip_code: params.tripCode,
+          departure_time: params.departureTime,
+          arrival_time: params.arrivalTime,
+          base_fare: params.baseFare,
+          status: "scheduled",
+        })
+        .select()
+        .single();
+
+      if (error || !data) throw new Error(error?.message || "Failed to create trip");
+      return data as Trip;
+    }
+
     const id = `trip-${Date.now()}`;
     const trip: Trip = {
       id,
@@ -114,28 +170,6 @@ export class OperatorService {
       updated_at: new Date().toISOString(),
     };
     db.trips.set(id, trip);
-
-    // Initialize trip seats from vehicle seats
-    for (const vs of db.vehicleSeats.values()) {
-      if (vs.vehicle_id === params.vehicleId) {
-        const tsId = `ts-${id}-${vs.seat_number}`;
-        db.tripSeats.set(tsId, {
-          id: tsId,
-          trip_id: id,
-          vehicle_seat_id: vs.id,
-          seat_number: vs.seat_number,
-          seat_type: vs.seat_type,
-          fare: params.baseFare + (vs.seat_type === "window" || vs.seat_type === "sleeper" ? 50 : 0),
-          status: "available",
-          updated_at: new Date().toISOString(),
-          deck: vs.deck,
-          seat_row: vs.seat_row,
-          seat_column: vs.seat_column,
-        });
-      }
-    }
-
     return db.getTripById(id)!;
   }
 }
-
