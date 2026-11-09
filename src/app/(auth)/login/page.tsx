@@ -7,7 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Bus, ShieldCheck, UserCheck, Loader2, AlertCircle } from "lucide-react";
+import { ShieldCheck, UserCheck, Loader2, AlertCircle } from "lucide-react";
+import { RydvantaLogo } from "@/components/brand/RydvantaLogo";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -30,7 +31,7 @@ export default function LoginPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Login failed");
 
-      router.push(data.redirectUrl || "/passenger/dashboard");
+      router.push(data.redirectUrl || "/passenger/bookings");
       router.refresh();
     } catch (err: any) {
       setError(err.message || "An error occurred");
@@ -45,101 +46,116 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-[75vh] flex items-center justify-center px-4 py-12">
+    <div className="min-h-[80vh] flex items-center justify-center px-4 py-12">
       <div className="w-full max-w-md space-y-6">
-        <div className="text-center space-y-2">
-          <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-blue-600 text-white shadow-md">
-            <Bus className="w-6 h-6" />
+        {/* Header with Rydvanta Logo */}
+        <div className="text-center space-y-3">
+          <div className="flex justify-center">
+            <RydvantaLogo size="lg" showTagline={true} />
           </div>
-          <h1 className="text-2xl font-black text-slate-900 dark:text-slate-100">
-            Sign In to ALGIONS
+          <h1 className="text-2xl font-black text-charcoal">
+            Welcome Back
           </h1>
-          <p className="text-xs text-slate-500">
-            Access your passenger tickets or operator management portal
+          <p className="text-xs text-charcoal-muted">
+            Sign in to access your passenger reservations or operator management portal
           </p>
         </div>
 
         {/* Quick Demo Personas Pills */}
-        <div className="p-4 rounded-xl bg-blue-50/70 border border-blue-200 space-y-2">
-          <span className="text-[11px] font-bold uppercase tracking-wider text-blue-900 block">
+        <div className="p-4 rounded-2xl bg-ivory-soft border border-charcoal-border space-y-2">
+          <span className="text-[11px] font-bold uppercase tracking-wider text-forest block">
             Quick Demo Login Personas:
           </span>
           <div className="flex flex-wrap gap-2 text-xs">
             <button
               type="button"
               onClick={() => setDemoUser("passenger@algions.com")}
-              className="px-2.5 py-1 bg-white hover:bg-blue-100 text-blue-800 font-medium rounded-lg border border-blue-200 shadow-xs"
+              className="px-3 py-1.5 bg-white hover:bg-ivory text-charcoal font-bold rounded-xl border border-charcoal-border shadow-xs transition-colors"
             >
               Passenger (Ravi)
             </button>
             <button
               type="button"
               onClick={() => setDemoUser("operator@royalexpress.in")}
-              className="px-2.5 py-1 bg-white hover:bg-blue-100 text-blue-800 font-medium rounded-lg border border-blue-200 shadow-xs"
+              className="px-3 py-1.5 bg-white hover:bg-ivory text-forest font-bold rounded-xl border border-charcoal-border shadow-xs transition-colors"
             >
               Operator (Royal Express)
             </button>
             <button
               type="button"
               onClick={() => setDemoUser("admin@algions.com")}
-              className="px-2.5 py-1 bg-white hover:bg-blue-100 text-blue-800 font-medium rounded-lg border border-blue-200 shadow-xs"
+              className="px-3 py-1.5 bg-white hover:bg-ivory text-terracotta font-bold rounded-xl border border-charcoal-border shadow-xs transition-colors"
             >
-              System Admin
+              Admin (Operations)
             </button>
           </div>
         </div>
 
-        <Card>
-          <CardContent className="pt-6">
+        {/* Login Card */}
+        <Card className="rounded-3xl border-charcoal-border/80 shadow-warm">
+          <CardHeader className="pb-4">
+            <CardTitle className="text-base font-extrabold text-charcoal">
+              Account Credentials
+            </CardTitle>
+            <CardDescription className="text-xs text-charcoal-muted">
+              Enter your email and password to authenticate.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {error && (
+              <div className="mb-4 p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span>{error}</span>
+              </div>
+            )}
+
             <form onSubmit={handleLogin} className="space-y-4">
-              <div>
-                <Label htmlFor="email" className="text-xs font-semibold">
-                  Email Address
-                </Label>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold text-charcoal">Email Address</Label>
                 <Input
-                  id="email"
                   type="email"
-                  required
+                  placeholder="name@example.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="name@example.com"
-                  className="mt-1"
+                  required
+                  className="h-11 text-xs font-semibold"
                 />
               </div>
 
-              <div>
-                <Label htmlFor="pass" className="text-xs font-semibold">
-                  Password
-                </Label>
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs font-bold text-charcoal">Password</Label>
+                  <span className="text-[11px] text-terracotta font-medium">
+                    Demo: algions2026
+                  </span>
+                </div>
                 <Input
-                  id="pass"
                   type="password"
-                  required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="mt-1"
+                  required
+                  className="h-11 text-xs font-semibold"
                 />
               </div>
-
-              {error && (
-                <div className="p-3 rounded-lg bg-red-50 text-red-600 text-xs flex items-center gap-2">
-                  <AlertCircle className="w-4 h-4 shrink-0" />
-                  <span>{error}</span>
-                </div>
-              )}
 
               <Button
                 type="submit"
                 disabled={loading}
-                className="w-full h-11 bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm"
+                className="w-full h-11 text-xs font-bold bg-terracotta hover:bg-terracotta-hover text-white rounded-xl shadow-xs"
               >
-                {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : "Sign In"}
+                {loading ? (
+                  <span className="flex items-center gap-2">
+                    <Loader2 className="w-4 h-4 animate-spin" /> Authenticating...
+                  </span>
+                ) : (
+                  "Sign In to Account"
+                )}
               </Button>
             </form>
 
-            <div className="mt-6 text-center text-xs text-slate-500">
+            <div className="mt-5 pt-4 border-t border-charcoal-border/50 text-center text-xs text-charcoal-muted">
               Don&apos;t have an account?{" "}
-              <Link href="/register" className="font-bold text-blue-600 hover:underline">
+              <Link href="/register" className="font-bold text-terracotta hover:underline">
                 Create Account
               </Link>
             </div>
@@ -149,4 +165,3 @@ export default function LoginPage() {
     </div>
   );
 }
-
