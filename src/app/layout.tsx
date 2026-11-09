@@ -4,8 +4,17 @@ import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 
 export const metadata: Metadata = {
-  title: "ALGIONS Bus Booking Management System",
-  description: "Enterprise-grade Full-Stack Bus Booking Management System with PostgreSQL concurrency control, atomic transactions, and manifest reconciliation.",
+  title: "Rydvanta Transit — Every route. Reliably booked.",
+  description:
+    "Premium Bus Booking & Transit Management System. Real-time seat selection, instant confirmation, PostgreSQL concurrency control, and zero double-booking guarantee.",
+  keywords: [
+    "bus booking",
+    "Rydvanta",
+    "transit management",
+    "intercity bus",
+    "seat reservation",
+    "live manifest",
+  ],
 };
 
 export default function RootLayout({
@@ -15,7 +24,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className="min-h-screen flex flex-col bg-slate-50 text-slate-900 antialiased font-sans">
+      <body className="min-h-screen flex flex-col bg-[#F8F4EC] text-charcoal antialiased selection:bg-terracotta selection:text-white">
         <Navbar />
         <main className="flex-1">{children}</main>
         <Footer />
@@ -23,4 +32,3 @@ export default function RootLayout({
     </html>
   );
 }
-

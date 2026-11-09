@@ -21,6 +21,8 @@ import {
   Phone,
   Mail,
   Loader2,
+  ArrowRight,
+  Armchair,
 } from "lucide-react";
 
 export default function TripDetailPage({
@@ -99,35 +101,40 @@ export default function TripDetailPage({
     setBookingError(null);
   };
 
-  const handlePassengerChange = (index: number, field: string, value: any) => {
+  const handlePassengerChange = (
+    index: number,
+    field: "fullName" | "age" | "gender",
+    value: string | number
+  ) => {
     const updated = [...passengers];
     updated[index] = { ...updated[index], [field]: value };
     setPassengers(updated);
   };
 
-  const totalFare = selectedSeats.reduce((sum, s) => sum + Number(s.fare), 0);
+  // Calculate pricing
+  const baseTotal = selectedSeats.reduce((sum, s) => sum + (Number(s.fare) || Number(trip?.base_fare) || 0), 0);
+  const gstAmount = Math.round(baseTotal * 0.05); // 5% GST
+  const grandTotal = baseTotal + gstAmount;
 
-  // Submit atomic booking
-  const handleConfirmBooking = async (e: React.FormEvent) => {
+  const handleBookingSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setBookingError(null);
-
     if (selectedSeats.length === 0) {
-      setBookingError("Please select at least one seat.");
+      setBookingError("Please select at least one seat on the seat map.");
       return;
     }
 
-    // Validate passengers
-    for (const p of passengers) {
-      if (!p.fullName.trim()) {
-        setBookingError(`Please provide full name for seat ${p.seatNumber}`);
+    // Validate passenger names
+    for (let i = 0; i < passengers.length; i++) {
+      if (!passengers[i].fullName.trim()) {
+        setBookingError(`Please enter passenger name for seat ${passengers[i].seatNumber}.`);
         return;
       }
     }
 
     setSubmitting(true);
+    setBookingError(null);
+
     try {
-      const idempotencyKey = crypto.randomUUID();
       const res = await fetch("/api/bookings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -135,26 +142,23 @@ export default function TripDetailPage({
           tripId,
           seatIds: selectedSeats.map((s) => s.id),
           passengers,
-          contact: {
-            name: contactName,
+          contactInfo: {
+            fullName: contactName,
             email: contactEmail,
             phone: contactPhone,
           },
-          idempotencyKey,
         }),
       });
 
       const data = await res.json();
+
       if (!res.ok) {
-        throw new Error(data.error || "Booking failed.");
+        throw new Error(data.error || "Booking transaction failed. Seats may have just been reserved.");
       }
 
-      // Success: redirect to passenger booking ticket view
       router.push(`/passenger/bookings?pnr=${data.data.pnr}&success=true`);
     } catch (err: any) {
-      setBookingError(err.message || "Booking failed");
-      // Refresh seat inventory to reflect any newly booked seats
-      loadTripData();
+      setBookingError(err.message || "An unexpected error occurred.");
     } finally {
       setSubmitting(false);
     }
@@ -162,63 +166,86 @@ export default function TripDetailPage({
 
   if (loading) {
     return (
-      <div className="min-h-[60vh] flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+      <div className="min-h-[60vh] flex flex-col items-center justify-center space-y-3">
+        <Loader2 className="w-8 h-8 animate-spin text-terracotta" />
+        <p className="text-xs text-charcoal-muted font-medium">Loading real-time trip schedules & seat matrix...</p>
       </div>
     );
   }
 
   if (!trip) {
     return (
-      <div className="max-w-md mx-auto py-16 text-center space-y-4">
-        <h2 className="text-xl font-bold">Trip not found</h2>
-        <Button onClick={() => router.push("/search")}>Back to Search</Button>
+      <div className="max-w-md mx-auto my-12 p-8 bg-white border border-charcoal-border rounded-3xl text-center space-y-4 shadow-warm">
+        <AlertCircle className="w-12 h-12 text-terracotta mx-auto" />
+        <h2 className="text-xl font-bold text-charcoal">Trip Not Found</h2>
+        <p className="text-xs text-charcoal-muted">
+          The requested trip ID could not be loaded from the database schedule.
+        </p>
+        <Button onClick={() => router.push("/search")} className="text-xs font-bold rounded-xl">
+          Return to Trips
+        </Button>
       </div>
     );
   }
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
-      {/* Trip Information Banner */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div className="space-y-1">
+      {/* Trip Information Top Banner */}
+      <div className="bg-forest-deep text-white rounded-3xl p-6 sm:p-8 shadow-warm-lg space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-ivory-soft/20 pb-5">
+          <div>
             <div className="flex items-center gap-2">
-              <span className="text-xl font-black text-slate-900 dark:text-slate-100">
-                {trip.operator?.name}
+              <span className="text-xs uppercase tracking-widest text-amber-300 font-bold">
+                {trip.operator?.name || "Rydvanta Prime Express"}
               </span>
-              <Badge variant="secondary">{trip.vehicle?.layout_type}</Badge>
+              <Badge variant="sage" className="text-[10px] uppercase font-mono">
+                {trip.vehicle?.layout_type || "2x2 AC Seater"}
+              </Badge>
             </div>
-            <p className="text-xs text-slate-500">
-              Trip Code: {trip.trip_code} • Bus Model: {trip.vehicle?.model} ({trip.vehicle?.registration_number})
+            <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white mt-1">
+              {trip.route?.origin_city} → {trip.route?.destination_city}
+            </h1>
+            <p className="text-xs text-ivory-soft/80 flex items-center gap-2 mt-1">
+              <Bus className="w-3.5 h-3.5 text-terracotta" />
+              <span>{trip.vehicle?.model} • Reg: {trip.vehicle?.registration_number}</span>
             </p>
           </div>
 
-          <div className="flex items-center gap-8">
-            <div>
-              <span className="text-xs font-semibold text-slate-400">Departure</span>
-              <div className="text-lg font-bold">{formatTime(trip.departure_time)}</div>
-              <p className="text-xs text-slate-600 dark:text-slate-400 font-medium">{trip.route?.origin_city}</p>
-              <p className="text-[11px] text-slate-400">{formatDate(trip.departure_time)}</p>
-            </div>
+          <div className="text-left sm:text-right">
+            <span className="text-xs text-ivory-soft/70 block">Departure Date</span>
+            <span className="text-lg font-bold text-white block">
+              {formatDate(trip.departure_time)}
+            </span>
+            <span className="text-xs text-amber-300 font-mono">
+              Starts at {formatTime(trip.departure_time)}
+            </span>
+          </div>
+        </div>
 
-            <div className="text-center text-xs text-slate-400">
-              <span>→</span>
-            </div>
-
-            <div>
-              <span className="text-xs font-semibold text-slate-400">Arrival</span>
-              <div className="text-lg font-bold">{formatTime(trip.arrival_time)}</div>
-              <p className="text-xs text-slate-600 dark:text-slate-400 font-medium">{trip.route?.destination_city}</p>
-              <p className="text-[11px] text-slate-400">{formatDate(trip.arrival_time)}</p>
-            </div>
+        {/* Departure & Arrival Badges */}
+        <div className="flex flex-wrap items-center justify-between gap-4 text-xs pt-1">
+          <div className="flex items-center gap-2">
+            <MapPin className="w-4 h-4 text-terracotta" />
+            <span>
+              <strong>Departure:</strong> {formatTime(trip.departure_time)} ({trip.route?.origin_city})
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <MapPin className="w-4 h-4 text-emerald-400" />
+            <span>
+              <strong>Arrival:</strong> {formatTime(trip.arrival_time)} ({trip.route?.destination_city})
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <ShieldCheck className="w-4 h-4 text-emerald-400" />
+            <span>Zero Double-Booking Guarantee</span>
           </div>
         </div>
       </div>
 
-      {/* Main Grid: Seat Map on Left, Passenger & Summary on Right */}
+      {/* Main Grid: Left Seat Map, Right Booking Summary Form */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-        {/* Left Column: Interactive Seat Map */}
+        {/* Seat Map Column */}
         <div className="lg:col-span-7 space-y-4">
           <SeatMap
             seats={seats}
@@ -228,82 +255,124 @@ export default function TripDetailPage({
           />
         </div>
 
-        {/* Right Column: Passenger Info & Booking Summary */}
+        {/* Booking Form / Passenger Details Column */}
         <div className="lg:col-span-5 space-y-6">
-          <Card>
-            <CardHeader className="pb-3 border-b border-slate-100 dark:border-slate-800">
-              <CardTitle className="text-base font-bold flex items-center justify-between">
-                <span>Selected Seats ({selectedSeats.length})</span>
-                <span className="text-blue-600 font-mono text-lg">{formatCurrency(totalFare)}</span>
+          <Card className="rounded-3xl border-charcoal-border/80 shadow-warm">
+            <CardHeader className="pb-4 border-b border-charcoal-border/50">
+              <CardTitle className="text-lg font-extrabold text-charcoal flex items-center justify-between">
+                <span>Booking Summary</span>
+                <Badge variant="terracotta" className="text-xs">
+                  {selectedSeats.length} {selectedSeats.length === 1 ? "Seat" : "Seats"} Selected
+                </Badge>
               </CardTitle>
             </CardHeader>
 
-            <CardContent className="pt-4 space-y-6">
-              {/* Selected Seat Badges */}
-              {selectedSeats.length > 0 ? (
-                <div className="flex flex-wrap gap-2">
-                  {selectedSeats.map((s) => (
-                    <Badge key={s.id} className="bg-blue-600 text-white font-mono px-3 py-1 text-xs">
-                      Seat {s.seat_number} ({formatCurrency(s.fare)})
-                    </Badge>
-                  ))}
-                </div>
-              ) : (
-                <div className="p-4 rounded-xl border border-dashed border-slate-300 dark:border-slate-700 text-center text-xs text-slate-500">
-                  Click on an available seat from the bus blueprint to begin booking.
+            <CardContent className="pt-5 space-y-6">
+              {bookingError && (
+                <div className="p-3.5 rounded-xl bg-red-50 border border-red-200 text-red-800 text-xs flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 shrink-0 text-red-600" />
+                  <span>{bookingError}</span>
                 </div>
               )}
 
-              {/* Dynamic Passenger Forms */}
-              {selectedSeats.length > 0 && (
-                <form onSubmit={handleConfirmBooking} className="space-y-6">
-                  <div className="space-y-4">
-                    <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500">
-                      Passenger Information
-                    </h4>
-
-                    {passengers.map((p, idx) => (
-                      <div
-                        key={idx}
-                        className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/40 space-y-3"
+              {/* Selected Seats Pills */}
+              {selectedSeats.length > 0 ? (
+                <div className="space-y-2">
+                  <span className="text-xs font-bold text-charcoal uppercase tracking-wider block">
+                    Selected Seats:
+                  </span>
+                  <div className="flex flex-wrap gap-2">
+                    {selectedSeats.map((s) => (
+                      <span
+                        key={s.id}
+                        className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-terracotta text-white font-mono text-xs font-bold shadow-xs"
                       >
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs font-bold text-blue-600">
-                            Passenger {idx + 1} (Seat {p.seatNumber})
+                        <Armchair className="w-3.5 h-3.5" />
+                        <span>Seat {s.seat_number}</span>
+                        <span className="text-[10px] opacity-80">({formatCurrency(s.fare)})</span>
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="p-4 rounded-xl bg-ivory-soft border border-charcoal-border/60 text-center space-y-1">
+                  <Armchair className="w-6 h-6 text-charcoal-muted mx-auto" />
+                  <p className="text-xs font-bold text-charcoal">No Seats Selected</p>
+                  <p className="text-[11px] text-charcoal-muted">
+                    Click available seats on the blueprint to reserve them.
+                  </p>
+                </div>
+              )}
+
+              {/* Passenger Inputs Form */}
+              <form onSubmit={handleBookingSubmit} className="space-y-5">
+                {selectedSeats.length > 0 && (
+                  <div className="space-y-4 pt-2 border-t border-charcoal-border/40">
+                    <span className="text-xs font-bold text-charcoal uppercase tracking-wider block">
+                      Passenger Information:
+                    </span>
+                    {passengers.map((passenger, idx) => (
+                      <div
+                        key={passenger.seatNumber}
+                        className="p-3.5 rounded-2xl bg-ivory-light border border-charcoal-border/70 space-y-3"
+                      >
+                        <div className="flex items-center justify-between text-xs font-bold text-charcoal">
+                          <span className="flex items-center gap-1.5">
+                            <User className="w-3.5 h-3.5 text-terracotta" />
+                            Passenger {idx + 1}
+                          </span>
+                          <span className="font-mono text-forest bg-sage-surface px-2 py-0.5 rounded-md border border-sage">
+                            Seat {passenger.seatNumber}
                           </span>
                         </div>
 
                         <div>
-                          <Label className="text-xs">Full Name</Label>
+                          <Label className="text-[11px] font-semibold text-charcoal-muted">
+                            Full Name
+                          </Label>
                           <Input
+                            placeholder="e.g. Ramesh Sharma"
+                            value={passenger.fullName}
+                            onChange={(e) =>
+                              handlePassengerChange(idx, "fullName", e.target.value)
+                            }
                             required
-                            value={p.fullName}
-                            onChange={(e) => handlePassengerChange(idx, "fullName", e.target.value)}
-                            placeholder="e.g. Rahul Sharma"
-                            className="mt-1"
+                            className="h-10 text-xs mt-1 font-semibold"
                           />
                         </div>
 
                         <div className="grid grid-cols-2 gap-3">
                           <div>
-                            <Label className="text-xs">Age</Label>
+                            <Label className="text-[11px] font-semibold text-charcoal-muted">
+                              Age
+                            </Label>
                             <Input
                               type="number"
-                              min="1"
-                              max="120"
+                              min={1}
+                              max={120}
+                              value={passenger.age}
+                              onChange={(e) =>
+                                handlePassengerChange(idx, "age", Number(e.target.value))
+                              }
                               required
-                              value={p.age}
-                              onChange={(e) => handlePassengerChange(idx, "age", Number(e.target.value))}
-                              className="mt-1"
+                              className="h-10 text-xs mt-1 font-semibold"
                             />
                           </div>
 
                           <div>
-                            <Label className="text-xs">Gender</Label>
+                            <Label className="text-[11px] font-semibold text-charcoal-muted">
+                              Gender
+                            </Label>
                             <select
-                              value={p.gender}
-                              onChange={(e) => handlePassengerChange(idx, "gender", e.target.value)}
-                              className="w-full mt-1 h-9 rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm px-2"
+                              value={passenger.gender}
+                              onChange={(e) =>
+                                handlePassengerChange(
+                                  idx,
+                                  "gender",
+                                  e.target.value as "male" | "female" | "other"
+                                )
+                              }
+                              className="w-full h-10 px-3 mt-1 text-xs font-semibold text-charcoal bg-white border border-charcoal-border rounded-xl focus:outline-none focus:ring-2 focus:ring-terracotta/40"
                             >
                               <option value="male">Male</option>
                               <option value="female">Female</option>
@@ -314,78 +383,93 @@ export default function TripDetailPage({
                       </div>
                     ))}
                   </div>
+                )}
 
-                  {/* Contact Details */}
-                  <div className="space-y-3 pt-3 border-t border-slate-200 dark:border-slate-800">
-                    <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500">
-                      Contact Information
-                    </h4>
+                {/* Primary Contact Details */}
+                <div className="space-y-3 pt-2 border-t border-charcoal-border/40">
+                  <span className="text-xs font-bold text-charcoal uppercase tracking-wider block">
+                    Contact Details for e-Ticket:
+                  </span>
 
-                    <div>
-                      <Label className="text-xs">Contact Person Name</Label>
-                      <Input
-                        required
-                        value={contactName}
-                        onChange={(e) => setContactName(e.target.value)}
-                        className="mt-1"
-                      />
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <Label className="text-xs">Email Address</Label>
-                        <Input
-                          type="email"
-                          required
-                          value={contactEmail}
-                          onChange={(e) => setContactEmail(e.target.value)}
-                          className="mt-1"
-                        />
-                      </div>
-                      <div>
-                        <Label className="text-xs">Mobile Phone</Label>
-                        <Input
-                          required
-                          value={contactPhone}
-                          onChange={(e) => setContactPhone(e.target.value)}
-                          className="mt-1"
-                        />
-                      </div>
-                    </div>
+                  <div>
+                    <Label className="text-[11px] font-semibold text-charcoal-muted">
+                      Contact Name
+                    </Label>
+                    <Input
+                      value={contactName}
+                      onChange={(e) => setContactName(e.target.value)}
+                      required
+                      className="h-10 text-xs mt-1 font-semibold"
+                    />
                   </div>
 
-                  {/* Error banner */}
-                  {bookingError && (
-                    <div className="p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-xs flex items-center gap-2">
-                      <AlertCircle className="w-4 h-4 shrink-0" />
-                      <span>{bookingError}</span>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <Label className="text-[11px] font-semibold text-charcoal-muted">
+                        Email Address
+                      </Label>
+                      <Input
+                        type="email"
+                        value={contactEmail}
+                        onChange={(e) => setContactEmail(e.target.value)}
+                        required
+                        className="h-10 text-xs mt-1 font-semibold"
+                      />
                     </div>
+                    <div>
+                      <Label className="text-[11px] font-semibold text-charcoal-muted">
+                        Phone Number
+                      </Label>
+                      <Input
+                        type="tel"
+                        value={contactPhone}
+                        onChange={(e) => setContactPhone(e.target.value)}
+                        required
+                        className="h-10 text-xs mt-1 font-semibold"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Fare Breakdown */}
+                <div className="space-y-2 pt-4 border-t border-charcoal-border/50 text-xs">
+                  <div className="flex justify-between text-charcoal-muted font-medium">
+                    <span>Base Fare ({selectedSeats.length} seats)</span>
+                    <span>{formatCurrency(baseTotal)}</span>
+                  </div>
+                  <div className="flex justify-between text-charcoal-muted font-medium">
+                    <span>GST (5%)</span>
+                    <span>{formatCurrency(gstAmount)}</span>
+                  </div>
+                  <div className="flex justify-between text-base font-black text-charcoal pt-2 border-t border-charcoal-border/50">
+                    <span>Total Amount</span>
+                    <span className="text-terracotta">{formatCurrency(grandTotal)}</span>
+                  </div>
+                </div>
+
+                {/* Submit Button */}
+                <Button
+                  type="submit"
+                  disabled={submitting || selectedSeats.length === 0}
+                  className="w-full h-12 text-sm font-bold bg-terracotta hover:bg-terracotta-hover text-white rounded-xl shadow-sm flex items-center justify-center gap-2"
+                >
+                  {submitting ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>Locking Seats & Generating Ticket...</span>
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle2 className="w-4 h-4" />
+                      <span>Confirm & Book ({formatCurrency(grandTotal)})</span>
+                    </>
                   )}
+                </Button>
 
-                  {/* Submit CTA */}
-                  <Button
-                    type="submit"
-                    disabled={submitting}
-                    className="w-full h-12 text-base font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-md flex items-center justify-center gap-2"
-                  >
-                    {submitting ? (
-                      <>
-                        <Loader2 className="w-5 h-5 animate-spin" />
-                        Acquiring Row Locks...
-                      </>
-                    ) : (
-                      <>
-                        <CheckCircle2 className="w-5 h-5" />
-                        Confirm Booking ({formatCurrency(totalFare)})
-                      </>
-                    )}
-                  </Button>
-
-                  <p className="text-[11px] text-center text-slate-400">
-                    Guaranteed seat exclusivity through PostgreSQL transactions and FOR UPDATE locking.
-                  </p>
-                </form>
-              )}
+                <p className="text-[11px] text-charcoal-muted text-center leading-tight">
+                  🔒 Seats are locked exclusively in PostgreSQL with row-level locks. Instant simulated refund available upon cancellation.
+                </p>
+              </form>
             </CardContent>
           </Card>
         </div>
@@ -393,4 +477,3 @@ export default function TripDetailPage({
     </div>
   );
 }
-

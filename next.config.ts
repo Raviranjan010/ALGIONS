@@ -3,14 +3,20 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   eslint: {
-    // Avoid build breaks during deployment if minor lint rules trigger
     ignoreDuringBuilds: false,
   },
   typescript: {
-    // Maintain strict TS
     ignoreBuildErrors: false,
+  },
+  images: {
+    unoptimized: true,
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "images.unsplash.com",
+      },
+    ],
   },
 };
 
 export default nextConfig;
-

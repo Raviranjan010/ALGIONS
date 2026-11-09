@@ -17,8 +17,10 @@ import {
   ShieldCheck,
   User,
   XCircle,
+  Armchair,
 } from "lucide-react";
 import { QRCodeView } from "@/components/booking/QRCodeView";
+import { RydvantaLogo } from "@/components/brand/RydvantaLogo";
 
 interface TicketCardProps {
   booking: Booking;
@@ -66,276 +68,252 @@ export const TicketCard: React.FC<TicketCardProps> = ({
   };
 
   return (
-    <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-lg overflow-hidden max-w-3xl mx-auto">
-      {/* Ticket Header */}
+    <div className="bg-white border border-charcoal-border/80 rounded-3xl shadow-warm-lg overflow-hidden max-w-3xl mx-auto transition-all">
+      {/* Ticket Top Banner */}
       <div
-        className={`p-6 text-white flex flex-col sm:flex-row sm:items-center justify-between gap-4 ${
-          isCancelled ? "bg-slate-700" : "bg-gradient-to-r from-blue-700 to-indigo-800"
+        className={`p-6 sm:p-7 text-white flex flex-col sm:flex-row sm:items-center justify-between gap-4 ${
+          isCancelled ? "bg-charcoal" : "bg-forest-deep"
         }`}
       >
-        <div>
+        <div className="space-y-1">
           <div className="flex items-center gap-2">
-            <Bus className="w-5 h-5" />
-            <span className="text-xs uppercase tracking-widest font-semibold opacity-90">
+            <RydvantaLogo variant="light" size="sm" asLink={false} />
+            <span className="text-[10px] uppercase tracking-widest font-bold opacity-80 pl-2 border-l border-white/20">
               Official e-Ticket / Boarding Pass
             </span>
           </div>
-          <h2 className="text-2xl font-black font-mono tracking-tight mt-1">
+          <h2 className="text-2xl sm:text-3xl font-black font-mono tracking-tight text-white mt-1">
             PNR: {booking.pnr}
           </h2>
-          <p className="text-xs opacity-80">
+          <p className="text-xs text-ivory-soft/80 font-medium">
             Booked on {formatDate(booking.created_at)} at {formatTime(booking.created_at)}
           </p>
         </div>
 
         <div className="flex items-center gap-2 self-start sm:self-auto">
           {isConfirmed && (
-            <Badge className="bg-emerald-500 text-white hover:bg-emerald-600 px-3 py-1 text-sm font-bold flex items-center gap-1.5 shadow">
+            <span className="bg-emerald-600 text-white px-3.5 py-1.5 rounded-full text-xs font-bold flex items-center gap-1.5 shadow-xs">
               <CheckCircle2 className="w-4 h-4" /> Confirmed
-            </Badge>
+            </span>
           )}
           {isCancelled && (
-            <Badge variant="destructive" className="px-3 py-1 text-sm font-bold flex items-center gap-1.5 shadow">
+            <Badge variant="destructive" className="px-3.5 py-1.5 rounded-full text-xs font-bold flex items-center gap-1.5 shadow-xs">
               <XCircle className="w-4 h-4" /> Cancelled
             </Badge>
           )}
         </div>
       </div>
 
-      <div className="p-6 space-y-6">
-        {/* Journey Details */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 pb-6 border-b border-slate-200 dark:border-slate-800 items-center">
-          <div>
-            <span className="text-xs uppercase tracking-wider text-slate-400 font-semibold">
-              Departure
+      {/* Ticket Body with Perforated Edge Effect */}
+      <div className="p-6 sm:p-8 space-y-6">
+        {/* Journey Timeline */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 p-5 rounded-2xl bg-ivory-soft/70 border border-charcoal-border/70">
+          <div className="text-left space-y-1">
+            <span className="text-[10px] uppercase font-bold tracking-wider text-charcoal-muted block">
+              Origin / Departure
             </span>
-            <div className="text-lg font-bold text-slate-900 dark:text-slate-100 mt-1">
-              {booking.trip ? formatTime(booking.trip.departure_time) : "--:--"}
-            </div>
-            <p className="text-xs text-slate-600 dark:text-slate-400 flex items-center gap-1">
-              <MapPin className="w-3.5 h-3.5 text-blue-600" />
-              {booking.trip?.route?.origin_city || "Origin City"}
-            </p>
-            <p className="text-[11px] text-slate-400 mt-0.5">
-              {booking.trip ? formatDate(booking.trip.departure_time) : ""}
-            </p>
+            <span className="text-xl font-black text-charcoal block">
+              {booking.trip?.route?.origin_city || "Origin"}
+            </span>
+            <span className="text-xs text-forest font-bold flex items-center gap-1">
+              <Clock className="w-3.5 h-3.5 text-terracotta" />
+              {booking.trip?.departure_time ? formatTime(booking.trip.departure_time) : "TBD"}
+            </span>
+            <span className="text-[11px] text-charcoal-muted block">
+              {booking.trip?.departure_time ? formatDate(booking.trip.departure_time) : ""}
+            </span>
           </div>
 
-          <div>
-            <span className="text-xs uppercase tracking-wider text-slate-400 font-semibold">
-              Arrival
+          <div className="flex flex-col items-center px-4">
+            <span className="text-[11px] font-bold text-forest uppercase tracking-wider">
+              {booking.trip?.operator?.name || "Rydvanta Express"}
             </span>
-            <div className="text-lg font-bold text-slate-900 dark:text-slate-100 mt-1">
-              {booking.trip ? formatTime(booking.trip.arrival_time) : "--:--"}
+            <div className="flex items-center gap-2 my-1">
+              <div className="w-2.5 h-2.5 rounded-full bg-terracotta" />
+              <div className="w-20 sm:w-28 h-0.5 bg-charcoal-border dashed" />
+              <div className="w-2.5 h-2.5 rounded-full bg-forest" />
             </div>
-            <p className="text-xs text-slate-600 dark:text-slate-400 flex items-center gap-1">
-              <MapPin className="w-3.5 h-3.5 text-emerald-600" />
-              {booking.trip?.route?.destination_city || "Destination City"}
-            </p>
-            <p className="text-[11px] text-slate-400 mt-0.5">
-              {booking.trip ? formatDate(booking.trip.arrival_time) : ""}
-            </p>
+            <span className="text-[10px] text-charcoal-muted font-medium">
+              Reg: {booking.trip?.vehicle?.registration_number || "MH-01"}
+            </span>
           </div>
 
-          <div>
-            <span className="text-xs uppercase tracking-wider text-slate-400 font-semibold">
-              Operator & Bus
+          <div className="text-left sm:text-right space-y-1">
+            <span className="text-[10px] uppercase font-bold tracking-wider text-charcoal-muted block">
+              Destination / Arrival
             </span>
-            <div className="text-base font-bold text-slate-900 dark:text-slate-100 mt-1">
-              {booking.trip?.operator?.name || "Transit Operator"}
-            </div>
-            <p className="text-xs text-slate-500">
-              Trip: {booking.trip?.trip_code || "N/A"}
-            </p>
-            <p className="text-xs text-slate-500">
-              Reg: {booking.trip?.vehicle?.registration_number || "N/A"}
-            </p>
-          </div>
-
-          <div className="flex justify-center md:justify-end">
-            <QRCodeView pnr={booking.pnr} size={96} />
+            <span className="text-xl font-black text-charcoal block">
+              {booking.trip?.route?.destination_city || "Destination"}
+            </span>
+            <span className="text-xs text-forest font-bold flex items-center gap-1 sm:justify-end">
+              <Clock className="w-3.5 h-3.5 text-forest" />
+              {booking.trip?.arrival_time ? formatTime(booking.trip.arrival_time) : "TBD"}
+            </span>
+            <span className="text-[11px] text-charcoal-muted block">
+              {booking.trip?.arrival_time ? formatDate(booking.trip.arrival_time) : ""}
+            </span>
           </div>
         </div>
 
-        {/* Passenger Manifest for this Ticket */}
-        <div>
-          <h4 className="text-sm font-semibold uppercase tracking-wider text-slate-500 mb-3 flex items-center gap-2">
-            <User className="w-4 h-4 text-blue-600" />
-            Passenger & Seat Details
-          </h4>
+        {/* Passenger & Ticket Information Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
+          {/* Passengers List */}
+          <div className="md:col-span-2 space-y-3">
+            <h4 className="text-xs font-bold uppercase tracking-wider text-charcoal flex items-center gap-1.5">
+              <User className="w-4 h-4 text-terracotta" />
+              Passenger Manifest ({booking.items?.length || 1})
+            </h4>
 
-          <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800">
-            <table className="w-full text-left text-sm">
-              <thead className="bg-slate-50 dark:bg-slate-800/50 text-slate-600 dark:text-slate-400 text-xs uppercase font-semibold">
-                <tr>
-                  <th className="py-2.5 px-4">#</th>
-                  <th className="py-2.5 px-4">Passenger Name</th>
-                  <th className="py-2.5 px-4">Age / Gender</th>
-                  <th className="py-2.5 px-4">Seat Number</th>
-                  <th className="py-2.5 px-4 text-right">Status</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                {booking.passengers && booking.passengers.length > 0 ? (
-                  booking.passengers.map((p, idx) => (
-                    <tr key={p.id || idx} className="hover:bg-slate-50/50">
-                      <td className="py-2.5 px-4 text-slate-400">{idx + 1}</td>
-                      <td className="py-2.5 px-4 font-semibold text-slate-900 dark:text-slate-100">
-                        {p.full_name}
-                      </td>
-                      <td className="py-2.5 px-4 text-slate-600 dark:text-slate-400 capitalize">
-                        {p.age} yrs • {p.gender}
-                      </td>
-                      <td className="py-2.5 px-4">
-                        <span className="font-mono font-bold px-2.5 py-1 rounded bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300">
-                          {p.seat_number}
-                        </span>
-                      </td>
-                      <td className="py-2.5 px-4 text-right">
-                        <span className={`text-xs font-semibold ${isConfirmed ? "text-emerald-600" : "text-red-500"}`}>
-                          {isConfirmed ? "Confirmed" : "Released"}
-                        </span>
-                      </td>
-                    </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan={5} className="py-4 text-center text-slate-400">
-                      No passengers listed.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
+            <div className="divide-y divide-charcoal-border/50 rounded-2xl border border-charcoal-border/70 overflow-hidden bg-white">
+              {booking.items && booking.items.length > 0 ? (
+                booking.items.map((item, idx) => (
+                  <div key={item.id} className="p-3.5 flex items-center justify-between text-xs">
+                    <div className="space-y-0.5">
+                      <span className="font-bold text-charcoal block">
+                        {item.passenger_name || `Passenger ${idx + 1}`}
+                      </span>
+                      <span className="text-[11px] text-charcoal-muted">
+                        Age: {item.passenger_age || "N/A"} • Gender: {item.passenger_gender || "N/A"}
+                      </span>
+                    </div>
+                    <div className="text-right">
+                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-terracotta text-white font-mono font-bold text-xs shadow-xs">
+                        <Armchair className="w-3.5 h-3.5" />
+                        Seat {item.seat?.seat_number || "N/A"}
+                      </span>
+                      <span className="text-[11px] text-charcoal-muted block mt-0.5 font-medium">
+                        {formatCurrency(item.fare_at_booking)}
+                      </span>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="p-3 text-xs text-charcoal-muted">No itemized details</div>
+              )}
+            </div>
+
+            {/* Contact Details */}
+            <div className="p-3.5 rounded-2xl bg-ivory-soft/60 border border-charcoal-border/60 text-xs space-y-1">
+              <span className="font-bold text-charcoal block">Primary Contact Details:</span>
+              <p className="text-charcoal-muted">
+                <strong>Name:</strong> {booking.contact_name} • <strong>Email:</strong> {booking.contact_email} • <strong>Phone:</strong> {booking.contact_phone}
+              </p>
+            </div>
+          </div>
+
+          {/* QR Code Scannable Verification Pass */}
+          <div className="flex flex-col items-center justify-center p-4 bg-ivory-light rounded-2xl border border-charcoal-border/70 space-y-2 text-center">
+            <span className="text-xs font-bold text-charcoal">Digital Boarding Pass</span>
+            <QRCodeView pnr={booking.pnr} size={130} />
+            <p className="text-[10px] text-charcoal-muted max-w-[150px]">
+              Scan to verify boarding pass authenticity at the terminal.
+            </p>
           </div>
         </div>
 
-        {/* Contact & Fare Summary */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 text-sm">
+        {/* Financial Summary & Actions */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-4 border-t border-charcoal-border/60">
           <div>
-            <span className="text-xs font-semibold uppercase text-slate-400">
-              Primary Contact
+            <span className="text-xs text-charcoal-muted font-medium block">Total Paid (Inclusive of GST)</span>
+            <span className="text-2xl font-black text-charcoal">
+              {formatCurrency(booking.total_amount)}
             </span>
-            <p className="font-semibold text-slate-900 dark:text-slate-100 mt-1">
-              {booking.contact_name}
-            </p>
-            <p className="text-xs text-slate-500">{booking.contact_email} • {booking.contact_phone}</p>
           </div>
 
-          <div className="sm:text-right">
-            <span className="text-xs font-semibold uppercase text-slate-400">
-              Total Fare Paid
-            </span>
-            <div className="text-2xl font-black text-slate-900 dark:text-slate-100 mt-0.5">
-              {formatCurrency(booking.total_fare)}
-            </div>
-            <p className="text-[11px] text-emerald-600 font-medium">Inclusive of all transit taxes</p>
-          </div>
-        </div>
-
-        {/* Cancellation Summary If Cancelled */}
-        {isCancelled && booking.cancellation && (
-          <div className="p-4 rounded-xl border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-950/30 space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold uppercase tracking-wider text-red-700 dark:text-red-400 flex items-center gap-1.5">
-                <AlertTriangle className="w-4 h-4" /> Cancellation & Simulated Refund Summary
-              </span>
-              <Badge variant="outline" className="border-red-300 text-red-700 text-xs">
-                {booking.cancellation.refund_status}
-              </Badge>
-            </div>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm pt-2">
-              <div>
-                <span className="text-xs text-slate-500">Reason</span>
-                <p className="font-medium text-slate-800 dark:text-slate-200">{booking.cancellation.reason}</p>
-              </div>
-              <div>
-                <span className="text-xs text-slate-500">Refund Policy Applied</span>
-                <p className="font-medium text-slate-800 dark:text-slate-200">{booking.cancellation.refund_percentage}% of fare</p>
-              </div>
-              <div>
-                <span className="text-xs text-slate-500">Simulated Refund Amount</span>
-                <p className="font-bold text-emerald-600 text-base">{formatCurrency(booking.cancellation.refund_amount)}</p>
-              </div>
-            </div>
-            <p className="text-[11px] text-slate-500 pt-1">
-              Note: As per system specification, this is a simulated refund credit to the original payment method.
-            </p>
-          </div>
-        )}
-
-        {/* Actions Bar */}
-        <div className="flex flex-wrap items-center justify-between gap-3 pt-4 border-t border-slate-200 dark:border-slate-800">
           <div className="flex items-center gap-2">
             <Button
               variant="outline"
               size="sm"
               onClick={() => window.print()}
-              className="flex items-center gap-1.5 text-xs font-semibold"
+              className="text-xs font-bold gap-1.5 rounded-xl border-charcoal-border"
             >
-              <Printer className="w-4 h-4" /> Print Ticket
+              <Printer className="w-3.5 h-3.5" /> Print Ticket
             </Button>
-          </div>
 
-          {isConfirmed && allowCancel && (
-            <Button
-              variant="destructive"
-              size="sm"
-              onClick={() => setShowCancelModal(true)}
-              className="text-xs font-semibold"
-            >
-              Cancel Booking
-            </Button>
-          )}
+            {isConfirmed && allowCancel && (
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={() => setShowCancelModal(true)}
+                className="text-xs font-bold gap-1.5 rounded-xl"
+              >
+                Cancel Booking
+              </Button>
+            )}
+          </div>
         </div>
+
+        {/* Cancellation Details if Cancelled */}
+        {isCancelled && booking.cancellation && (
+          <div className="p-4 rounded-2xl bg-ivory-soft border border-charcoal-border text-xs space-y-1 text-charcoal">
+            <div className="flex items-center gap-1.5 font-bold text-red-600">
+              <XCircle className="w-4 h-4" />
+              <span>Booking Cancelled on {formatDate(booking.cancellation.created_at)}</span>
+            </div>
+            <p className="text-charcoal-muted">
+              Refund Amount: <strong>{formatCurrency(booking.cancellation.refund_amount)}</strong> • Cancellation Fee: {formatCurrency(booking.cancellation.cancellation_fee)}
+            </p>
+            <p className="text-[11px] text-charcoal-muted">
+              Refund Status: <strong>{booking.cancellation.refund_status.toUpperCase()}</strong> (Simulated instant refund completed)
+            </p>
+          </div>
+        )}
       </div>
 
-      {/* Cancellation Modal */}
+      {/* Cancellation Confirmation Modal */}
       {showCancelModal && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-slate-900 rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-800 space-y-4">
-            <div className="flex items-center gap-2 text-red-600">
-              <AlertTriangle className="w-5 h-5" />
-              <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100">
-                Confirm Cancellation
-              </h3>
+        <div className="fixed inset-0 z-50 bg-charcoal/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 space-y-4 shadow-warm-lg border border-charcoal-border animate-in fade-in">
+            <div className="flex items-center gap-3 text-red-600">
+              <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
+                <AlertTriangle className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="font-extrabold text-base text-charcoal">Confirm Cancellation</h3>
+                <p className="text-xs text-charcoal-muted">PNR: {booking.pnr}</p>
+              </div>
             </div>
 
-            <p className="text-sm text-slate-600 dark:text-slate-400">
-              Are you sure you want to cancel booking <strong>{booking.pnr}</strong>? All booked seats will be released back to the inventory immediately.
+            <p className="text-xs text-charcoal-muted leading-relaxed">
+              Are you sure you want to cancel this booking? Once cancelled, seats will be immediately released back into live inventory for other passengers.
             </p>
 
-            <div className="p-3 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900 text-xs text-amber-800 dark:text-amber-300 space-y-1">
-              <p className="font-semibold">Cancellation Policy:</p>
-              <p>• &gt;24h before departure: 90% refund (10% cancellation charge)</p>
-              <p>• 12h–24h before: 75% refund</p>
-              <p>• 2h–12h before: 50% refund</p>
-              <p>• &lt;2h before: 0% refund (Non-refundable)</p>
+            {/* Refund Tier Guidance */}
+            <div className="p-3.5 rounded-xl bg-ivory-soft border border-charcoal-border/70 text-xs space-y-1">
+              <span className="font-bold text-forest block">Simulated Refund Policy:</span>
+              <ul className="text-[11px] text-charcoal-muted space-y-0.5 list-disc pl-4">
+                <li>&gt; 24h prior: 90% refund (10% fee)</li>
+                <li>12h to 24h: 50% refund (50% fee)</li>
+                <li>4h to 12h: 25% refund (75% fee)</li>
+                <li>&lt; 4h: 0% refund</li>
+              </ul>
             </div>
 
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                Reason for Cancellation
+            <div>
+              <label className="text-xs font-bold text-charcoal block mb-1">
+                Reason for cancellation:
               </label>
               <input
                 type="text"
                 value={cancelReason}
                 onChange={(e) => setCancelReason(e.target.value)}
-                className="w-full text-sm rounded-lg border border-slate-300 dark:border-slate-700 p-2 bg-transparent"
-                placeholder="e.g. Change in schedule"
+                className="w-full text-xs font-semibold p-2.5 rounded-xl border border-charcoal-border focus:outline-none focus:ring-2 focus:ring-terracotta/40"
               />
             </div>
 
             {cancelError && (
-              <p className="text-xs text-red-600 font-semibold">{cancelError}</p>
+              <div className="p-2.5 rounded-lg bg-red-50 text-red-700 text-xs">
+                {cancelError}
+              </div>
             )}
 
-            <div className="flex items-center justify-end gap-2 pt-3">
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-charcoal-border/50">
               <Button
-                variant="outline"
+                variant="ghost"
                 size="sm"
                 onClick={() => setShowCancelModal(false)}
                 disabled={isCancelling}
+                className="text-xs font-semibold rounded-xl"
               >
                 Keep Booking
               </Button>
@@ -344,8 +322,9 @@ export const TicketCard: React.FC<TicketCardProps> = ({
                 size="sm"
                 onClick={handleCancelBooking}
                 disabled={isCancelling}
+                className="text-xs font-bold rounded-xl"
               >
-                {isCancelling ? "Processing..." : "Confirm & Cancel"}
+                {isCancelling ? "Cancelling..." : "Confirm & Cancel"}
               </Button>
             </div>
           </div>
@@ -354,4 +333,3 @@ export const TicketCard: React.FC<TicketCardProps> = ({
     </div>
   );
 };
-

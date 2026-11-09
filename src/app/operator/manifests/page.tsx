@@ -14,6 +14,7 @@ import {
   Users,
   Search,
   Loader2,
+  Armchair,
 } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 
@@ -74,14 +75,14 @@ function OperatorManifestsContent() {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
       {/* Header and Actions */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-6 border-b border-slate-200 dark:border-slate-800 gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-6 border-b border-charcoal-border/70 gap-4">
         <div>
-          <h1 className="text-2xl font-black text-slate-900 dark:text-slate-100 flex items-center gap-2">
-            <FileSpreadsheet className="w-6 h-6 text-blue-600" />
+          <h1 className="text-2xl sm:text-3xl font-black text-charcoal flex items-center gap-2">
+            <FileSpreadsheet className="w-6 h-6 text-terracotta" />
             Passenger Dispatch Manifest
           </h1>
-          <p className="text-xs text-slate-500 mt-1">
-            Real-time boarding manifest reconciled with confirmed seat inventory.
+          <p className="text-xs text-charcoal-muted mt-1">
+            Real-time boarding manifest reconciled with confirmed seat inventory and passenger records.
           </p>
         </div>
 
@@ -90,7 +91,7 @@ function OperatorManifestsContent() {
             variant="outline"
             size="sm"
             onClick={() => window.print()}
-            className="text-xs font-semibold gap-1.5"
+            className="text-xs font-bold gap-1.5 rounded-xl border-charcoal-border"
           >
             <Printer className="w-4 h-4" /> Print Manifest
           </Button>
@@ -98,16 +99,16 @@ function OperatorManifestsContent() {
       </div>
 
       {/* Trip Selector & Search Filter Bar */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm space-y-4 no-print">
+      <div className="bg-white border border-charcoal-border/80 rounded-3xl p-5 sm:p-6 shadow-warm space-y-4 no-print">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block mb-1.5">
+            <label className="text-xs font-bold uppercase tracking-wider text-charcoal-muted block mb-1.5">
               Select Scheduled Departure
             </label>
             <select
               value={selectedTripId}
               onChange={(e) => setSelectedTripId(e.target.value)}
-              className="w-full h-10 rounded-xl border border-slate-300 dark:border-slate-700 bg-transparent px-3 text-sm font-medium"
+              className="w-full h-11 rounded-xl border border-charcoal-border bg-white px-3.5 text-xs font-bold text-charcoal focus:outline-none focus:ring-2 focus:ring-terracotta/40"
             >
               {trips.map((t) => (
                 <option key={t.id} value={t.id}>
@@ -119,17 +120,17 @@ function OperatorManifestsContent() {
           </div>
 
           <div>
-            <label className="text-xs font-bold uppercase tracking-wider text-slate-500 block mb-1.5">
+            <label className="text-xs font-bold uppercase tracking-wider text-charcoal-muted block mb-1.5">
               Filter Manifest
             </label>
             <div className="relative">
-              <Search className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+              <Search className="w-4 h-4 text-charcoal-muted absolute left-3.5 top-3.5" />
               <input
                 type="text"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Search by passenger name, PNR, or seat number..."
-                className="w-full h-10 pl-9 rounded-xl border border-slate-300 dark:border-slate-700 bg-transparent text-sm"
+                placeholder="Search by passenger name, PNR, or seat..."
+                className="w-full h-11 pl-10 pr-3.5 rounded-xl border border-charcoal-border bg-white text-xs font-semibold text-charcoal focus:outline-none focus:ring-2 focus:ring-terracotta/40"
               />
             </div>
           </div>
@@ -139,63 +140,66 @@ function OperatorManifestsContent() {
       {/* Selected Trip Details & Reconciliation Counters */}
       {currentTrip && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card>
+          <Card className="rounded-2xl border-charcoal-border shadow-xs">
             <CardHeader className="pb-2">
-              <CardTitle className="text-xs font-semibold uppercase text-slate-400">
+              <CardTitle className="text-xs font-bold uppercase text-charcoal-muted">
                 Vehicle Assigned
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-lg font-bold text-slate-900 dark:text-slate-100">
+              <div className="text-base font-bold text-charcoal">
                 {currentTrip.vehicle?.model}
               </div>
-              <p className="text-xs text-slate-500 font-mono mt-0.5">
+              <p className="text-[11px] text-charcoal-muted font-mono">
                 Reg: {currentTrip.vehicle?.registration_number}
               </p>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="rounded-2xl border-charcoal-border shadow-xs">
             <CardHeader className="pb-2">
-              <CardTitle className="text-xs font-semibold uppercase text-slate-400">
-                Total Capacity
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-black text-slate-900 dark:text-slate-100">
-                {currentTrip.total_seats_count ?? currentTrip.vehicle?.total_capacity ?? 30}
-              </div>
-              <p className="text-[11px] text-slate-500 mt-1">Bus capacity configuration</p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-xs font-semibold uppercase text-slate-400">
+              <CardTitle className="text-xs font-bold uppercase text-charcoal-muted">
                 Confirmed Passengers
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-black text-emerald-600">
+              <div className="text-2xl font-black text-forest">
                 {confirmedPassengers.length}
               </div>
-              <p className="text-[11px] text-slate-500 mt-1">Active verified boarding passes</p>
+              <p className="text-[11px] text-charcoal-muted">
+                Ready for terminal boarding
+              </p>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="rounded-2xl border-charcoal-border shadow-xs">
             <CardHeader className="pb-2">
-              <CardTitle className="text-xs font-semibold uppercase text-slate-400">
-                Reconciliation Status
+              <CardTitle className="text-xs font-bold uppercase text-charcoal-muted">
+                Cancelled / Released
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="flex items-center gap-1.5 text-emerald-600 font-bold text-sm mt-1">
-                <CheckCircle2 className="w-5 h-5 shrink-0" />
-                <span>100% Reconciled</span>
+              <div className="text-2xl font-black text-charcoal-muted">
+                {cancelledPassengers.length}
               </div>
-              <p className="text-[11px] text-slate-500 mt-1">
-                {currentTrip.available_seats_count} remaining unallocated seats
+              <p className="text-[11px] text-charcoal-muted">
+                Seats restored to inventory
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card className="rounded-2xl border-charcoal-border shadow-xs">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-xs font-bold uppercase text-charcoal-muted">
+                Total Seats Allocated
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-black text-terracotta">
+                {manifest.length}
+              </div>
+              <p className="text-[11px] text-charcoal-muted">
+                All records tracked in audit trail
               </p>
             </CardContent>
           </Card>
@@ -203,75 +207,82 @@ function OperatorManifestsContent() {
       )}
 
       {/* Manifest Table */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm overflow-hidden">
-        <div className="p-4 bg-slate-50 dark:bg-slate-800/40 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
-          <h3 className="font-bold text-sm text-slate-900 dark:text-slate-100">
-            Manifest Passenger List ({filteredManifest.length} records)
-          </h3>
-          <span className="text-xs text-slate-500">Sorted by Seat Number</span>
+      <div className="bg-white rounded-3xl border border-charcoal-border/80 overflow-hidden shadow-warm">
+        <div className="p-5 border-b border-charcoal-border/60 flex items-center justify-between">
+          <h2 className="text-sm font-bold text-charcoal flex items-center gap-2">
+            <Users className="w-4 h-4 text-forest" />
+            Passenger Dispatch Roster ({filteredManifest.length})
+          </h2>
+          <span className="text-[11px] font-mono text-charcoal-muted">
+            Trip: {currentTrip?.trip_code}
+          </span>
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
-            <thead className="bg-slate-100/60 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-xs uppercase font-semibold">
-              <tr>
-                <th className="py-3 px-4">Seat</th>
-                <th className="py-3 px-4">PNR</th>
-                <th className="py-3 px-4">Passenger Name</th>
-                <th className="py-3 px-4">Age / Gender</th>
-                <th className="py-3 px-4">Emergency Contact</th>
-                <th className="py-3 px-4">Status</th>
-                <th className="py-3 px-4 text-center">Boarding Check</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-              {filteredManifest.length > 0 ? (
-                filteredManifest.map((item, idx) => {
+        {filteredManifest.length > 0 ? (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs">
+              <thead className="bg-ivory-soft text-charcoal font-bold uppercase tracking-wider border-b border-charcoal-border/70">
+                <tr>
+                  <th className="px-5 py-3.5">Seat</th>
+                  <th className="px-5 py-3.5">Passenger Name</th>
+                  <th className="px-5 py-3.5">Age/Gender</th>
+                  <th className="px-5 py-3.5">PNR Number</th>
+                  <th className="px-5 py-3.5">Contact Phone</th>
+                  <th className="px-5 py-3.5">Fare</th>
+                  <th className="px-5 py-3.5 text-right">Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-charcoal-border/50 text-charcoal">
+                {filteredManifest.map((item) => {
                   const isConfirmed = item.booking_status === "confirmed";
                   return (
-                    <tr key={idx} className="hover:bg-slate-50/50">
-                      <td className="py-3 px-4">
-                        <span className="font-mono font-bold px-2.5 py-1 rounded bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-200">
+                    <tr
+                      key={item.booking_item_id}
+                      className={isConfirmed ? "hover:bg-ivory-light" : "bg-ivory-soft/30 opacity-60"}
+                    >
+                      <td className="px-5 py-3.5">
+                        <span className="inline-flex items-center gap-1 font-mono font-bold px-2 py-0.5 rounded-lg bg-ivory-soft text-forest border border-charcoal-border/60">
+                          <Armchair className="w-3 h-3 text-terracotta" />
                           {item.seat_number}
                         </span>
                       </td>
-                      <td className="py-3 px-4 font-mono font-semibold text-xs text-slate-600 dark:text-slate-400">
-                        {item.pnr}
-                      </td>
-                      <td className="py-3 px-4 font-bold text-slate-900 dark:text-slate-100">
+                      <td className="px-5 py-3.5 font-bold">
                         {item.passenger_name}
                       </td>
-                      <td className="py-3 px-4 text-xs text-slate-600 dark:text-slate-400 capitalize">
-                        {item.age} yrs • {item.gender}
+                      <td className="px-5 py-3.5 text-charcoal-muted">
+                        {item.passenger_age} yrs • {item.passenger_gender}
                       </td>
-                      <td className="py-3 px-4 text-xs text-slate-600 dark:text-slate-400">
+                      <td className="px-5 py-3.5 font-mono font-bold text-forest">
+                        {item.pnr}
+                      </td>
+                      <td className="px-5 py-3.5 font-mono text-charcoal-muted">
                         {item.contact_phone}
                       </td>
-                      <td className="py-3 px-4">
-                        <Badge variant={isConfirmed ? "success" : "destructive"}>
-                          {item.booking_status}
-                        </Badge>
+                      <td className="px-5 py-3.5 font-bold">
+                        {formatCurrency(item.fare_at_booking)}
                       </td>
-                      <td className="py-3 px-4 text-center">
-                        <input
-                          type="checkbox"
-                          disabled={!isConfirmed}
-                          className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 border-slate-300"
-                        />
+                      <td className="px-5 py-3.5 text-right">
+                        {isConfirmed ? (
+                          <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">
+                            <CheckCircle2 className="w-3 h-3" /> Confirmed
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 text-[11px] font-bold text-red-700 bg-red-50 px-2.5 py-0.5 rounded-full border border-red-200">
+                            Cancelled
+                          </span>
+                        )}
                       </td>
                     </tr>
                   );
-                })
-              ) : (
-                <tr>
-                  <td colSpan={7} className="py-8 text-center text-xs text-slate-500">
-                    No passenger bookings found for this trip.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+                })}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div className="p-12 text-center text-xs text-charcoal-muted">
+            {searchTerm ? "No passengers match your search criteria." : "No bookings recorded for this departure yet."}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -281,8 +292,8 @@ export default function OperatorManifestsPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-[60vh] flex items-center justify-center">
-          <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+        <div className="min-h-[50vh] flex items-center justify-center">
+          <Loader2 className="w-8 h-8 animate-spin text-terracotta" />
         </div>
       }
     >

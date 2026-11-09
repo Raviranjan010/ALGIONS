@@ -5,7 +5,7 @@ import { Booking } from "@/types";
 import { TicketCard } from "@/components/booking/TicketCard";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Ticket, Search, CheckCircle2, Loader2 } from "lucide-react";
+import { Ticket, Search, CheckCircle2, Loader2, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 
@@ -60,7 +60,7 @@ function PassengerBookingsContent() {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
       {/* Top Banner if redirected after booking */}
       {isSuccess && highlightPnr && (
-        <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-900 flex items-center justify-between shadow-sm">
+        <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-900 flex flex-col sm:flex-row sm:items-center justify-between shadow-xs gap-3">
           <div className="flex items-center gap-3">
             <CheckCircle2 className="w-6 h-6 text-emerald-600 shrink-0" />
             <div>
@@ -71,7 +71,7 @@ function PassengerBookingsContent() {
             </div>
           </div>
           <Link href="/search">
-            <Button size="sm" variant="outline" className="text-xs font-semibold">
+            <Button size="sm" variant="outline" className="text-xs font-bold rounded-xl border-emerald-300">
               Book Another Trip
             </Button>
           </Link>
@@ -79,13 +79,13 @@ function PassengerBookingsContent() {
       )}
 
       {/* Header and Quick PNR Lookup */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between pb-6 border-b border-slate-200 dark:border-slate-800 gap-4">
+      <div className="flex flex-col md:flex-row md:items-center justify-between pb-6 border-b border-charcoal-border/70 gap-4">
         <div>
-          <h1 className="text-2xl font-black text-slate-900 dark:text-slate-100 flex items-center gap-2">
-            <Ticket className="w-6 h-6 text-blue-600" />
+          <h1 className="text-2xl sm:text-3xl font-black text-charcoal flex items-center gap-2">
+            <Ticket className="w-6 h-6 text-terracotta" />
             My Bookings & Tickets
           </h1>
-          <p className="text-xs text-slate-500 mt-1">
+          <p className="text-xs text-charcoal-muted mt-1">
             View tickets, boarding details, or manage cancellations with simulated instant refunds.
           </p>
         </div>
@@ -96,23 +96,28 @@ function PassengerBookingsContent() {
             value={searchPnr}
             onChange={(e) => setSearchPnr(e.target.value)}
             placeholder="Quick Search PNR (e.g. ALG-XXXXXX)"
-            className="text-xs uppercase font-mono h-9"
+            className="text-xs uppercase font-mono h-10 rounded-xl"
           />
-          <Button type="submit" size="sm" className="bg-blue-600 text-white shrink-0">
-            <Search className="w-4 h-4 mr-1" /> Search
+          <Button type="submit" size="sm" className="h-10 px-4 text-xs font-bold bg-terracotta text-white rounded-xl shrink-0">
+            <Search className="w-3.5 h-3.5 mr-1" /> Look Up
           </Button>
         </form>
       </div>
 
-      {/* Single PNR Search Result if active */}
+      {/* Individual PNR Search Result if active */}
       {pnrResult && (
-        <div className="space-y-4">
+        <div className="space-y-3 p-6 bg-ivory-soft/60 rounded-3xl border border-charcoal-border/80">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">
-              PNR Search Result
-            </h2>
-            <Button variant="ghost" size="sm" onClick={() => setPnrResult(null)} className="text-xs">
-              Clear Filter
+            <span className="text-xs font-bold uppercase tracking-wider text-forest">
+              Lookup Result for PNR: {pnrResult.pnr}
+            </span>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setPnrResult(null)}
+              className="text-xs"
+            >
+              Clear Result
             </Button>
           </div>
           <TicketCard booking={pnrResult} onCancelSuccess={fetchBookings} />
@@ -120,20 +125,21 @@ function PassengerBookingsContent() {
       )}
 
       {searchError && (
-        <div className="p-3 rounded-lg bg-red-50 text-red-600 text-xs font-medium">
+        <div className="p-4 rounded-2xl bg-red-50 border border-red-200 text-red-700 text-xs text-center font-medium">
           {searchError}
         </div>
       )}
 
-      {/* Passenger's Booking List */}
+      {/* Main Bookings List */}
       <div className="space-y-6">
-        <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">
-          Recent Bookings ({bookings.length})
+        <h2 className="text-lg font-bold text-charcoal">
+          Your Recent Reservations ({bookings.length})
         </h2>
 
         {loading ? (
-          <div className="py-12 flex justify-center">
-            <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+          <div className="min-h-[30vh] flex flex-col items-center justify-center space-y-2">
+            <Loader2 className="w-6 h-6 animate-spin text-terracotta" />
+            <p className="text-xs text-charcoal-muted font-medium">Retrieving passenger tickets...</p>
           </div>
         ) : bookings.length > 0 ? (
           <div className="space-y-6">
@@ -146,19 +152,19 @@ function PassengerBookingsContent() {
             ))}
           </div>
         ) : (
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-12 text-center space-y-4">
-            <div className="w-16 h-16 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-400 flex items-center justify-center mx-auto">
+          <div className="bg-white border border-charcoal-border rounded-3xl p-12 text-center space-y-4 shadow-warm max-w-md mx-auto">
+            <div className="w-16 h-16 rounded-full bg-ivory-soft text-terracotta border border-charcoal-border flex items-center justify-center mx-auto">
               <Ticket className="w-8 h-8" />
             </div>
-            <h3 className="text-base font-bold text-slate-800 dark:text-slate-200">
-              No bookings found yet
+            <h3 className="text-base font-bold text-charcoal">
+              No Bookings Found Yet
             </h3>
-            <p className="text-xs text-slate-500 max-w-sm mx-auto">
-              Search for available intercity trips and book your preferred seats with instant confirmation.
+            <p className="text-xs text-charcoal-muted leading-relaxed">
+              You haven&apos;t booked any tickets yet. Explore our scheduled routes and experience real-time seat reservation with instant confirmation.
             </p>
             <Link href="/search">
-              <Button className="bg-blue-600 text-white font-semibold text-xs">
-                Search Trips Now
+              <Button size="sm" className="text-xs font-bold bg-terracotta text-white rounded-xl mt-2">
+                Search & Book Buses
               </Button>
             </Link>
           </div>
@@ -172,8 +178,8 @@ export default function PassengerBookingsPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-[60vh] flex items-center justify-center">
-          <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+        <div className="min-h-[50vh] flex items-center justify-center">
+          <Loader2 className="w-8 h-8 animate-spin text-terracotta" />
         </div>
       }
     >

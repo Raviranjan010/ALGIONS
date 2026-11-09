@@ -26,8 +26,8 @@ export const QRCodeView: React.FC<QRCodeViewProps> = ({
       width: size,
       margin: 1,
       color: {
-        dark: "#1e3a8a", // Brand Transit Navy
-        light: "#ffffff",
+        dark: "#123B2F", // Rydvanta Forest Green
+        light: "#FFFFFF",
       },
       errorCorrectionLevel: "M",
     })
@@ -36,7 +36,7 @@ export const QRCodeView: React.FC<QRCodeViewProps> = ({
   }, [pnr, verificationUrl, size]);
 
   return (
-    <div className="flex flex-col items-center justify-center p-3 rounded-xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 shadow-xs">
+    <div className="flex flex-col items-center justify-center p-3 rounded-2xl bg-white border border-charcoal-border/80 shadow-xs">
       {dataUrl ? (
         /* eslint-disable-next-line @next/next/no-img-element */
         <img
@@ -44,21 +44,20 @@ export const QRCodeView: React.FC<QRCodeViewProps> = ({
           alt={`Verification QR Code for PNR ${pnr}`}
           width={size}
           height={size}
-          className="rounded-lg shadow-xs"
+          className="rounded-xl shadow-xs"
         />
       ) : (
         <div
           style={{ width: size, height: size }}
-          className="flex items-center justify-center bg-slate-100 dark:bg-slate-800 rounded-lg"
+          className="flex items-center justify-center bg-ivory-soft rounded-xl"
         >
-          <QrCode className="w-8 h-8 text-slate-400 animate-pulse" />
+          <QrCode className="w-8 h-8 text-charcoal-muted animate-pulse" />
         </div>
       )}
-      <div className="flex items-center gap-1 text-[10px] text-slate-500 font-medium mt-1.5">
-        <ShieldCheck className="w-3 h-3 text-emerald-600" />
+      <div className="flex items-center gap-1 text-[10px] text-forest font-bold mt-2">
+        <ShieldCheck className="w-3.5 h-3.5 text-forest" />
         <span>Scannable Pass</span>
       </div>
     </div>
   );
 };
-

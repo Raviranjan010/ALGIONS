@@ -6,6 +6,7 @@ import { PublicTicketVerification } from "@/types";
 import { formatDate, formatTime } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { RydvantaLogo } from "@/components/brand/RydvantaLogo";
 import {
   ShieldCheck,
   CheckCircle2,
@@ -59,26 +60,26 @@ function VerifyTicketContent() {
   if (loading) {
     return (
       <div className="min-h-[60vh] flex flex-col items-center justify-center space-y-3">
-        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
-        <p className="text-xs text-slate-500 font-medium">Validating cryptographic PNR authenticity...</p>
+        <Loader2 className="w-8 h-8 animate-spin text-terracotta" />
+        <p className="text-xs text-charcoal-muted font-medium">Validating cryptographic PNR authenticity...</p>
       </div>
     );
   }
 
   if (error || !ticket) {
     return (
-      <div className="max-w-md mx-auto my-12 p-8 bg-white dark:bg-slate-900 border border-red-200 dark:border-red-900/50 rounded-2xl shadow-xl text-center space-y-4">
-        <div className="w-16 h-16 rounded-full bg-red-50 dark:bg-red-950/40 text-red-600 flex items-center justify-center mx-auto">
+      <div className="max-w-md mx-auto my-12 p-8 bg-white border border-charcoal-border rounded-3xl shadow-warm text-center space-y-4">
+        <div className="w-16 h-16 rounded-full bg-red-50 text-red-600 flex items-center justify-center mx-auto">
           <XCircle className="w-8 h-8" />
         </div>
-        <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">
+        <h2 className="text-xl font-bold text-charcoal">
           Invalid Boarding Pass
         </h2>
-        <p className="text-xs text-slate-500">
-          {error || "The scanned QR code does not match any confirmed booking in the ALGIONS system."}
+        <p className="text-xs text-charcoal-muted leading-relaxed">
+          {error || "The scanned QR code does not match any confirmed booking in the Rydvanta system."}
         </p>
         <Link href="/">
-          <Button size="sm" variant="outline" className="text-xs">
+          <Button size="sm" variant="outline" className="text-xs rounded-xl">
             Return to Homepage
           </Button>
         </Link>
@@ -90,134 +91,144 @@ function VerifyTicketContent() {
   const isCancelled = ticket.isCancelled;
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-10 space-y-6">
+    <div className="max-w-2xl mx-auto px-4 py-12 space-y-6">
       {/* Official Verification Header Banner */}
       <div
-        className={`p-6 rounded-2xl text-white shadow-lg flex flex-col sm:flex-row sm:items-center justify-between gap-4 ${
+        className={`p-6 sm:p-7 rounded-3xl text-white shadow-warm-lg flex flex-col sm:flex-row sm:items-center justify-between gap-4 ${
           isValid
-            ? "bg-gradient-to-r from-emerald-600 to-teal-700"
-            : "bg-gradient-to-r from-red-600 to-rose-700"
+            ? "bg-forest-deep"
+            : "bg-charcoal"
         }`}
       >
         <div className="space-y-1">
           <div className="flex items-center gap-2">
-            <ShieldCheck className="w-5 h-5 text-white" />
-            <span className="text-xs uppercase tracking-wider font-bold opacity-90">
-              Verified Digital Boarding Pass
+            <RydvantaLogo variant="light" size="sm" asLink={false} />
+            <span className="text-[10px] uppercase font-bold tracking-widest text-ivory-soft/80 pl-2 border-l border-white/20">
+              Terminal Verification
             </span>
           </div>
-          <h1 className="text-2xl font-black font-mono">PNR: {ticket.pnr}</h1>
-          <p className="text-xs opacity-90">
-            Authenticated via ALGIONS Concurrency & Dispatch Engine
+          <h1 className="text-2xl font-black font-mono tracking-tight text-white mt-1">
+            PNR: {ticket.pnr}
+          </h1>
+          <p className="text-xs text-ivory-soft/80">
+            Validated at {new Date().toLocaleTimeString()} • Verified by Cryptographic Hash
           </p>
         </div>
 
-        <div>
+        <div className="self-start sm:self-auto">
           {isValid ? (
-            <Badge className="bg-white text-emerald-800 font-bold px-3 py-1 text-sm shadow">
-              <CheckCircle2 className="w-4 h-4 mr-1 text-emerald-600" /> VALID FOR BOARDING
-            </Badge>
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-600 text-white font-bold text-xs shadow-xs">
+              <CheckCircle2 className="w-4 h-4" />
+              <span>Valid for Boarding</span>
+            </div>
           ) : (
-            <Badge className="bg-white text-red-800 font-bold px-3 py-1 text-sm shadow">
-              <XCircle className="w-4 h-4 mr-1 text-red-600" /> TICKET CANCELLED
-            </Badge>
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-red-600 text-white font-bold text-xs shadow-xs">
+              <XCircle className="w-4 h-4" />
+              <span>{isCancelled ? "Cancelled / Invalid" : "Invalid Ticket"}</span>
+            </div>
           )}
         </div>
       </div>
 
-      {/* Boarding Verification Details */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm space-y-6">
-        {/* Route Corridor */}
-        <div className="flex items-center justify-between pb-6 border-b border-slate-100 dark:border-slate-800">
+      {/* Verified Journey Card */}
+      <div className="bg-white border border-charcoal-border/80 rounded-3xl p-6 sm:p-8 space-y-6 shadow-warm">
+        {/* Route Details */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-charcoal-border/50">
           <div>
-            <span className="text-xs text-slate-400 font-semibold uppercase">Departure</span>
-            <div className="text-lg font-bold text-slate-900 dark:text-slate-100">
-              {ticket.departureTime ? formatTime(ticket.departureTime) : "TBD"}
-            </div>
-            <p className="text-xs text-slate-600 dark:text-slate-400 font-medium">
+            <span className="text-[10px] uppercase font-bold tracking-wider text-charcoal-muted block">
+              Origin City
+            </span>
+            <span className="text-xl font-black text-charcoal block">
               {ticket.originCity}
-            </p>
-            <p className="text-[11px] text-slate-400">
-              {ticket.departureTime ? formatDate(ticket.departureTime) : ""}
-            </p>
+            </span>
+            <span className="text-xs text-forest font-bold flex items-center gap-1 mt-0.5">
+              <Clock className="w-3.5 h-3.5 text-terracotta" />
+              {formatTime(ticket.departureTime)}
+            </span>
           </div>
 
-          <div className="text-slate-300">━━━━►</div>
+          <div className="flex items-center gap-2 text-charcoal-muted self-center">
+            <div className="w-2 h-2 rounded-full bg-terracotta" />
+            <div className="w-16 h-0.5 bg-charcoal-border" />
+            <ArrowRight className="w-4 h-4 text-forest" />
+          </div>
 
-          <div className="text-right">
-            <span className="text-xs text-slate-400 font-semibold uppercase">Arrival</span>
-            <div className="text-lg font-bold text-slate-900 dark:text-slate-100">
-              {ticket.arrivalTime ? formatTime(ticket.arrivalTime) : "TBD"}
-            </div>
-            <p className="text-xs text-slate-600 dark:text-slate-400 font-medium">
+          <div className="text-left sm:text-right">
+            <span className="text-[10px] uppercase font-bold tracking-wider text-charcoal-muted block">
+              Destination City
+            </span>
+            <span className="text-xl font-black text-charcoal block">
               {ticket.destinationCity}
-            </p>
-            <p className="text-[11px] text-slate-400">
-              {ticket.arrivalTime ? formatDate(ticket.arrivalTime) : ""}
-            </p>
+            </span>
+            <span className="text-xs text-forest font-bold flex items-center gap-1 sm:justify-end mt-0.5">
+              <Clock className="w-3.5 h-3.5 text-forest" />
+              {formatTime(ticket.arrivalTime)}
+            </span>
           </div>
         </div>
 
-        {/* Bus & Operator Information */}
-        <div className="grid grid-cols-2 gap-4 text-xs">
-          <div>
-            <span className="text-slate-400 uppercase font-semibold">Operator</span>
-            <p className="text-sm font-bold text-slate-900 dark:text-slate-100 mt-0.5">
+        {/* Departure Date and Vehicle details */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 text-xs">
+          <div className="p-3 rounded-2xl bg-ivory-soft/60 border border-charcoal-border/60">
+            <span className="text-charcoal-muted text-[10px] font-bold uppercase block">
+              Departure Date
+            </span>
+            <span className="font-bold text-charcoal">
+              {formatDate(ticket.departureTime)}
+            </span>
+          </div>
+
+          <div className="p-3 rounded-2xl bg-ivory-soft/60 border border-charcoal-border/60">
+            <span className="text-charcoal-muted text-[10px] font-bold uppercase block">
+              Operator
+            </span>
+            <span className="font-bold text-charcoal">
               {ticket.operatorName}
-            </p>
+            </span>
           </div>
+
+          <div className="p-3 rounded-2xl bg-ivory-soft/60 border border-charcoal-border/60 col-span-2 sm:col-span-1">
+            <span className="text-charcoal-muted text-[10px] font-bold uppercase block">
+              Vehicle Reg
+            </span>
+            <span className="font-mono font-bold text-charcoal">
+              {ticket.vehicleRegistration}
+            </span>
+          </div>
+        </div>
+
+        {/* Allocated Seats Count */}
+        <div className="flex items-center justify-between p-4 rounded-2xl bg-ivory-light border border-charcoal-border/60">
           <div>
-            <span className="text-slate-400 uppercase font-semibold">Assigned Fleet</span>
-            <p className="text-sm font-bold text-slate-900 dark:text-slate-100 mt-0.5">
-              {ticket.busModel} {ticket.busRegistration ? `(${ticket.busRegistration})` : ""}
-            </p>
+            <span className="text-xs font-bold text-charcoal block">
+              Reserved Seats Allocation
+            </span>
+            <span className="text-[11px] text-charcoal-muted">
+              {ticket.seatCount} {ticket.seatCount === 1 ? "seat" : "seats"} confirmed on vehicle manifest
+            </span>
           </div>
+          <span className="px-3.5 py-1 rounded-xl bg-forest text-white font-mono font-bold text-sm">
+            {ticket.seatCount} {ticket.seatCount === 1 ? "Seat" : "Seats"}
+          </span>
         </div>
 
-        {/* Confirmed Seat Allocations */}
-        <div className="space-y-3">
-          <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500">
-            Allocated Seat Assignments
-          </h3>
-          <div className="flex flex-wrap gap-2">
-            {ticket.seats && ticket.seats.length > 0 ? (
-              ticket.seats.map((seatNum, idx) => (
-                <div
-                  key={idx}
-                  className="px-4 py-2 rounded-xl bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-900 flex items-center gap-2"
-                >
-                  <Bus className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                  <span className="font-mono font-bold text-sm text-blue-900 dark:text-blue-200">
-                    Seat {seatNum}
-                  </span>
-                </div>
-              ))
-            ) : (
-              <p className="text-xs text-slate-400">No active seat allocations.</p>
-            )}
+        {/* Strict Zero-PII Security Assurance */}
+        <div className="p-4 rounded-2xl bg-ivory-soft border border-charcoal-border/60 text-xs text-charcoal-muted space-y-1">
+          <div className="flex items-center gap-1.5 font-bold text-forest">
+            <Lock className="w-3.5 h-3.5" />
+            <span>Cryptographic Privacy Protection</span>
           </div>
-        </div>
-
-        {/* Cancellation Notice (if cancelled) */}
-        {isCancelled && (
-          <div className="p-4 rounded-xl bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900 text-xs text-red-700 dark:text-red-300 space-y-1">
-            <p className="font-bold flex items-center gap-1.5">
-              <AlertTriangle className="w-4 h-4" /> Cancellation Confirmation:
-            </p>
-            <p>
-              This boarding pass was revoked {ticket.cancelledAt ? `on ${formatDate(ticket.cancelledAt)}` : ""}.
-            </p>
-            <p>Reserved seats have been released back to general booking inventory.</p>
-          </div>
-        )}
-
-        {/* Privacy & Anti-Fraud Notice */}
-        <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 flex items-start gap-3 text-xs text-slate-500">
-          <Lock className="w-4 h-4 text-slate-400 shrink-0 mt-0.5" />
-          <p>
-            <strong>Privacy & Security Protected:</strong> Sensitive passenger personal identity, contact
-            records, and payment figures are withheld from public QR scans in compliance with data privacy standards.
+          <p className="text-[11px] leading-relaxed">
+            In compliance with strict privacy requirements, passenger names, contact numbers, email addresses, and payment data are withheld from public scanning.
           </p>
+        </div>
+
+        <div className="pt-2 text-center">
+          <Link href="/">
+            <Button size="sm" variant="outline" className="text-xs font-bold rounded-xl border-charcoal-border">
+              Return to Homepage
+            </Button>
+          </Link>
         </div>
       </div>
     </div>
@@ -228,8 +239,8 @@ export default function VerifyTicketPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-[60vh] flex items-center justify-center">
-          <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+        <div className="min-h-[50vh] flex items-center justify-center">
+          <Loader2 className="w-8 h-8 animate-spin text-terracotta" />
         </div>
       }
     >

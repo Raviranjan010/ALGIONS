@@ -51,36 +51,63 @@ const config: Config = {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+        // Rydvanta Signature Brand Palette
+        forest: {
+          DEFAULT: "#123B2F",
+          dark: "#0B2921",
+          deep: "#071B16",
+          light: "#1C5443",
+          surface: "#184B3C",
+          border: "#1d5242",
+        },
+        ivory: {
+          DEFAULT: "#F8F4EC",
+          soft: "#F2EADF",
+          light: "#FDFBF7",
+          dark: "#E8DEC9",
+          border: "#E2DDD5",
+        },
+        terracotta: {
+          DEFAULT: "#C94B18",
+          hover: "#B33E10",
+          light: "#FFF1EB",
+          muted: "#E06A3B",
+          border: "#F7C7B3",
+        },
+        charcoal: {
+          DEFAULT: "#202923",
+          muted: "#4A554D",
+          light: "#69776E",
+          border: "#E2DDD5",
+        },
+        sage: {
+          DEFAULT: "#A8B5A0",
+          light: "#E5ECE0",
+          surface: "#EFF4EC",
+          dark: "#7E8E77",
+        },
         brand: {
-          50: "#eef7ff",
-          100: "#d9ecff",
-          200: "#bcddff",
-          300: "#8ec6ff",
-          400: "#59a3ff",
-          500: "#2563eb", // Primary Transit Blue
-          600: "#1d4ed8",
-          700: "#1e40af",
-          800: "#1e3a8a",
-          900: "#172554",
+          50: "#FFF5F0",
+          100: "#FFE6DB",
+          200: "#FFC8B3",
+          300: "#FFA385",
+          400: "#F07345",
+          500: "#C94B18", // Rydvanta Terracotta
+          600: "#B33E10",
+          700: "#8F2E08",
+          800: "#6B2003",
+          900: "#4D1500",
         },
-        emerald: {
-          50: "#ecfdf5",
-          100: "#d1fae5",
-          500: "#10b981",
-          600: "#059669",
-          700: "#047857",
-        },
-        amber: {
-          50: "#fffbeb",
-          100: "#fef3c7",
-          500: "#f59e0b",
-          600: "#d97706",
-        }
       },
       borderRadius: {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
+      },
+      boxShadow: {
+        warm: "0 10px 30px -5px rgba(32, 41, 35, 0.08), 0 4px 6px -2px rgba(32, 41, 35, 0.04)",
+        "warm-lg": "0 20px 40px -10px rgba(18, 59, 47, 0.12), 0 8px 12px -3px rgba(18, 59, 47, 0.06)",
+        card: "0 2px 10px rgba(32, 41, 35, 0.04), 0 1px 3px rgba(32, 41, 35, 0.06)",
       },
       keyframes: {
         "accordion-down": {
@@ -100,5 +127,5 @@ const config: Config = {
   },
   plugins: [require("tailwindcss-animate")],
 };
-export default config;
 
+export default config;

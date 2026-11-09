@@ -14,9 +14,9 @@ import {
   Map,
   Calendar,
   FileSpreadsheet,
-  PlusCircle,
   ArrowRight,
-  ShieldAlert,
+  ShieldCheck,
+  CheckCircle2,
 } from "lucide-react";
 
 export default async function OperatorDashboardPage() {
@@ -36,228 +36,179 @@ export default async function OperatorDashboardPage() {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
       {/* Dashboard Top Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-6 border-b border-slate-200 dark:border-slate-800 gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-6 border-b border-charcoal-border/70 gap-4">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-black text-slate-900 dark:text-slate-100">
+            <h1 className="text-2xl sm:text-3xl font-black text-charcoal">
               Operator Management Portal
             </h1>
-            <Badge variant="default" className="text-xs bg-blue-600">
+            <Badge variant="sage" className="text-xs">
               Operations Active
             </Badge>
           </div>
-          <p className="text-xs text-slate-500 mt-1">
+          <p className="text-xs text-charcoal-muted mt-1">
             Dispatch control, real-time passenger manifests, vehicle inventory, and occupancy reconciliation.
           </p>
         </div>
 
         <div className="flex items-center gap-2">
           <Link href="/operator/manifests">
-            <Button variant="outline" size="sm" className="font-semibold text-xs gap-1.5">
-              <FileSpreadsheet className="w-4 h-4 text-blue-600" /> View Manifests
+            <Button variant="outline" size="sm" className="font-bold text-xs gap-1.5 rounded-xl border-charcoal-border">
+              <FileSpreadsheet className="w-4 h-4 text-forest" /> View Manifests
             </Button>
           </Link>
           <Link href="/operator/reports">
-            <Button size="sm" className="bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs gap-1.5">
+            <Button size="sm" className="font-bold text-xs gap-1.5 bg-terracotta text-white rounded-xl shadow-xs">
               <TrendingUp className="w-4 h-4" /> Financial Reports
             </Button>
           </Link>
         </div>
       </div>
 
-      {/* KPI Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-xs font-semibold uppercase text-slate-400 flex items-center justify-between">
-              <span>Fleet Vehicles</span>
-              <Bus className="w-4 h-4 text-blue-600" />
+      {/* Metric Cards Row */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+        {/* Card 1: Gross Revenue */}
+        <Card className="rounded-3xl border-charcoal-border/80 shadow-warm">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-xs font-bold uppercase tracking-wider text-charcoal-muted">
+              Gross Revenue
             </CardTitle>
+            <div className="w-8 h-8 rounded-xl bg-ivory-soft text-forest flex items-center justify-center">
+              <TrendingUp className="w-4 h-4" />
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-black text-slate-900 dark:text-slate-100">
-              {vehicles.length}
+            <div className="text-2xl font-black text-charcoal">
+              {formatCurrency(grossRevenue)}
             </div>
-            <p className="text-[11px] text-slate-500 mt-1">Active registered buses</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-xs font-semibold uppercase text-slate-400 flex items-center justify-between">
-              <span>Network Routes</span>
-              <Map className="w-4 h-4 text-emerald-600" />
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-black text-slate-900 dark:text-slate-100">
-              {routes.length}
-            </div>
-            <p className="text-[11px] text-slate-500 mt-1">Intercity corridors</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-xs font-semibold uppercase text-slate-400 flex items-center justify-between">
-              <span>Occupancy Rate</span>
-              <Users className="w-4 h-4 text-indigo-600" />
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-black text-indigo-600">
-              {avgOccupancy}%
-            </div>
-            <p className="text-[11px] text-slate-500 mt-1">
-              {bookedSeats} of {totalSeats} seats booked
+            <p className="text-[11px] text-charcoal-muted mt-1">
+              Before cancellation adjustments
             </p>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-xs font-semibold uppercase text-slate-400 flex items-center justify-between">
-              <span>Net Revenue</span>
-              <TrendingUp className="w-4 h-4 text-emerald-600" />
+        {/* Card 2: Net Revenue */}
+        <Card className="rounded-3xl border-charcoal-border/80 shadow-warm">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-xs font-bold uppercase tracking-wider text-charcoal-muted">
+              Net Settled Revenue
             </CardTitle>
+            <div className="w-8 h-8 rounded-xl bg-terracotta-light text-terracotta flex items-center justify-center">
+              <ShieldCheck className="w-4 h-4" />
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-black text-emerald-600">
+            <div className="text-2xl font-black text-terracotta">
               {formatCurrency(netRevenue)}
             </div>
-            <p className="text-[11px] text-slate-500 mt-1">Reconciled ticket sales</p>
+            <p className="text-[11px] text-charcoal-muted mt-1">
+              Confirmed tickets retained
+            </p>
+          </CardContent>
+        </Card>
+
+        {/* Card 3: Occupancy Rate */}
+        <Card className="rounded-3xl border-charcoal-border/80 shadow-warm">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-xs font-bold uppercase tracking-wider text-charcoal-muted">
+              Average Occupancy
+            </CardTitle>
+            <div className="w-8 h-8 rounded-xl bg-sage-surface text-forest flex items-center justify-center">
+              <Users className="w-4 h-4" />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-black text-forest">
+              {avgOccupancy}%
+            </div>
+            <p className="text-[11px] text-charcoal-muted mt-1">
+              {bookedSeats} of {totalSeats} seats allocated
+            </p>
+          </CardContent>
+        </Card>
+
+        {/* Card 4: Fleet & Routes */}
+        <Card className="rounded-3xl border-charcoal-border/80 shadow-warm">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-xs font-bold uppercase tracking-wider text-charcoal-muted">
+              Active Inventory
+            </CardTitle>
+            <div className="w-8 h-8 rounded-xl bg-ivory-soft text-charcoal flex items-center justify-center">
+              <Bus className="w-4 h-4" />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-black text-charcoal">
+              {vehicles.length} Buses
+            </div>
+            <p className="text-[11px] text-charcoal-muted mt-1">
+              Across {routes.length} intercity routes
+            </p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Operator Navigation Hub */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Link href="/operator/manifests" className="group">
-          <Card className="h-full hover:border-blue-500 transition-all hover:shadow-md cursor-pointer">
-            <CardHeader>
-              <CardTitle className="text-base font-bold flex items-center gap-2 group-hover:text-blue-600">
-                <FileSpreadsheet className="w-5 h-5 text-blue-600" />
-                Passenger Manifests
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-xs text-slate-500 leading-relaxed">
-                Generate printable boarding passenger lists for upcoming departures. Reconcile verified seats and passenger emergency contacts.
-              </p>
-              <div className="mt-4 flex items-center text-xs font-semibold text-blue-600 group-hover:translate-x-1 transition-transform">
-                Open Manifest Table →
-              </div>
-            </CardContent>
-          </Card>
-        </Link>
-
-        <Link href="/operator/reports" className="group">
-          <Card className="h-full hover:border-emerald-500 transition-all hover:shadow-md cursor-pointer">
-            <CardHeader>
-              <CardTitle className="text-base font-bold flex items-center gap-2 group-hover:text-emerald-600">
-                <TrendingUp className="w-5 h-5 text-emerald-600" />
-                Seat Occupancy Reports
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-xs text-slate-500 leading-relaxed">
-                Track revenue, cancellation charge retainment, refund deductions, and seat occupancy percentages trip by trip.
-              </p>
-              <div className="mt-4 flex items-center text-xs font-semibold text-emerald-600 group-hover:translate-x-1 transition-transform">
-                View Occupancy Analytics →
-              </div>
-            </CardContent>
-          </Card>
-        </Link>
-
-        <Link href="/operator/vehicles" className="group">
-          <Card className="h-full hover:border-purple-500 transition-all hover:shadow-md cursor-pointer">
-            <CardHeader>
-              <CardTitle className="text-base font-bold flex items-center gap-2 group-hover:text-purple-600">
-                <Bus className="w-5 h-5 text-purple-600" />
-                Fleet & Route Config
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-xs text-slate-500 leading-relaxed">
-                Configure bus models, multi-deck seat layouts (2x2, 2x1 Sleeper), intercity route stops, and schedule new departures.
-              </p>
-              <div className="mt-4 flex items-center text-xs font-semibold text-purple-600 group-hover:translate-x-1 transition-transform">
-                Manage Fleet & Routes →
-              </div>
-            </CardContent>
-          </Card>
-        </Link>
-      </div>
-
-      {/* Live Trip Scheduling Table */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm space-y-4">
+      {/* Active Schedules Table */}
+      <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <div>
-            <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100">
-              Active Scheduled Trips
-            </h3>
-            <p className="text-xs text-slate-500">
-              Live operational departures with real-time seat inventory status.
-            </p>
-          </div>
-          <Link href="/operator/trips">
-            <Button size="sm" variant="outline" className="text-xs font-semibold">
-              <PlusCircle className="w-4 h-4 mr-1.5" /> Schedule New Trip
-            </Button>
-          </Link>
+          <h2 className="text-lg font-bold text-charcoal">
+            Active Scheduled Departures ({trips.length})
+          </h2>
+          <span className="text-xs text-charcoal-muted">
+            Real-time status synchronized with live database
+          </span>
         </div>
 
-        <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800">
-          <table className="w-full text-left text-sm">
-            <thead className="bg-slate-50 dark:bg-slate-800/50 text-slate-600 dark:text-slate-400 text-xs uppercase font-semibold">
-              <tr>
-                <th className="py-3 px-4">Trip Code</th>
-                <th className="py-3 px-4">Route</th>
-                <th className="py-3 px-4">Departure</th>
-                <th className="py-3 px-4">Vehicle</th>
-                <th className="py-3 px-4 text-center">Available Seats</th>
-                <th className="py-3 px-4 text-right">Base Fare</th>
-                <th className="py-3 px-4 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-              {trips.map((t) => (
-                <tr key={t.id} className="hover:bg-slate-50/50">
-                  <td className="py-3 px-4 font-mono font-bold text-xs text-blue-600">
-                    {t.trip_code}
-                  </td>
-                  <td className="py-3 px-4 font-semibold text-slate-800 dark:text-slate-200">
-                    {t.route?.origin_city} → {t.route?.destination_city}
-                  </td>
-                  <td className="py-3 px-4 text-xs text-slate-600 dark:text-slate-400">
-                    {formatDate(t.departure_time)}, {formatTime(t.departure_time)}
-                  </td>
-                  <td className="py-3 px-4 text-xs text-slate-600 dark:text-slate-400">
-                    {t.vehicle?.model} ({t.vehicle?.registration_number})
-                  </td>
-                  <td className="py-3 px-4 text-center">
-                    <Badge variant={t.available_seats_count === 0 ? "destructive" : "success"}>
-                      {t.available_seats_count ?? "--"} / {t.total_seats_count ?? "--"} Left
-                    </Badge>
-                  </td>
-                  <td className="py-3 px-4 text-right font-bold text-slate-900 dark:text-slate-100">
-                    {formatCurrency(t.base_fare)}
-                  </td>
-                  <td className="py-3 px-4 text-right">
-                    <Link href={`/operator/manifests?tripId=${t.id}`}>
-                      <Button variant="ghost" size="sm" className="text-xs text-blue-600 font-semibold">
-                        Manifest
-                      </Button>
-                    </Link>
-                  </td>
+        <div className="rounded-3xl border border-charcoal-border/80 bg-white overflow-hidden shadow-warm">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs">
+              <thead className="bg-ivory-soft text-charcoal font-bold uppercase tracking-wider border-b border-charcoal-border/70">
+                <tr>
+                  <th className="px-5 py-3.5">Route</th>
+                  <th className="px-5 py-3.5">Vehicle</th>
+                  <th className="px-5 py-3.5">Departure</th>
+                  <th className="px-5 py-3.5">Available Seats</th>
+                  <th className="px-5 py-3.5">Fare</th>
+                  <th className="px-5 py-3.5 text-right">Actions</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-charcoal-border/50 text-charcoal">
+                {trips.map((t) => (
+                  <tr key={t.id} className="hover:bg-ivory-light transition-colors">
+                    <td className="px-5 py-4 font-bold">
+                      {t.route?.origin_city} → {t.route?.destination_city}
+                    </td>
+                    <td className="px-5 py-4 text-charcoal-muted">
+                      {t.vehicle?.model} ({t.vehicle?.registration_number})
+                    </td>
+                    <td className="px-5 py-4">
+                      <span className="font-bold text-charcoal">{formatTime(t.departure_time)}</span>
+                      <span className="text-charcoal-muted block text-[11px]">
+                        {formatDate(t.departure_time)}
+                      </span>
+                    </td>
+                    <td className="px-5 py-4">
+                      <span className="font-mono font-bold text-forest">
+                        {t.available_seats_count ?? 24} left
+                      </span>
+                    </td>
+                    <td className="px-5 py-4 font-bold">
+                      {formatCurrency(t.base_fare)}
+                    </td>
+                    <td className="px-5 py-4 text-right">
+                      <Link href={`/operator/manifests?tripId=${t.id}`}>
+                        <Button variant="outline" size="sm" className="text-xs font-semibold rounded-xl border-charcoal-border">
+                          Manifest
+                        </Button>
+                      </Link>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     </div>
   );
 }
-
