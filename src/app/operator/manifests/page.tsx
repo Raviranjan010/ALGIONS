@@ -34,9 +34,7 @@ function OperatorManifestsContent() {
       .then((data) => {
         if (data.success && data.data.length > 0) {
           setTrips(data.data);
-          if (!selectedTripId) {
-            setSelectedTripId(data.data[0].id);
-          }
+          setSelectedTripId((prev) => prev || data.data[0].id);
         }
       })
       .catch(console.error)

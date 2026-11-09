@@ -5,6 +5,7 @@
 -- Description: Interactive and automated tests proving that concurrent database
 --              sessions competing for the same seat lock correctly, queue,
 --              and reject double-bookings at the row-lock and storage levels.
+--              Also validates fix for ISSUE-01 (v_cancellation unassigned record bug).
 -- ============================================================================
 
 -- ============================================================================
@@ -19,7 +20,7 @@
   -- 1. Begin explicit transaction and acquire exclusive row lock on seat
   BEGIN;
   
-  -- Step 1.1: Lock the seat row (ORDER BY id FOR UPDATE)
+  -- Step 1.1: Lock the seat row (deterministic ORDER BY id FOR UPDATE)
   PERFORM id FROM public.trip_seats
   WHERE id = 's1000000-0000-0000-0000-000000000001' AND status = 'available'
   ORDER BY id
@@ -82,9 +83,14 @@ DECLARE
     v_user_b UUID := 'e1000000-0000-0000-0000-000000000002';
     v_res_a JSONB;
     v_res_b JSONB;
+    v_res_replay JSONB;
     v_err_b TEXT;
+    v_err_conflict TEXT;
     v_active_seats_count INTEGER;
     v_verify_res JSONB;
+    v_cancel_res JSONB;
+    v_verify_cancel_res JSONB;
+    v_idem_key TEXT := 'concurrency-test-key-' || extract(epoch from now())::text;
 BEGIN
     RAISE NOTICE '=======================================================';
     RAISE NOTICE 'ALGIONS CONCURRENCY & INTEGRITY VERIFICATION STARTED';
@@ -112,7 +118,7 @@ BEGIN
         ARRAY[v_seat_id],
         jsonb_build_array(jsonb_build_object('fullName', 'User A Passenger', 'age', 30, 'gender', 'male', 'seatNumber', v_seat_num)),
         jsonb_build_object('name', 'User A', 'email', 'userA@test.com', 'phone', '+91 91111 22222'),
-        'concurrency-test-key-user-a-' || extract(epoch from now())::text
+        v_idem_key
     );
 
     RAISE NOTICE 'Transaction A Succeeded: Booking ID %, PNR %', v_res_a->>'booking_id', v_res_a->>'pnr';
@@ -122,7 +128,7 @@ BEGIN
         'ASSERTION FAILED: Seat was not updated to booked status';
 
     -- ========================================================================
-    -- Transaction 2: User B attempts to book the EXACT SAME SEAT
+    -- Transaction 2: User B attempts to book the EXACT SAME SEAT (Double-Booking Blocked)
     -- ========================================================================
     BEGIN
         v_res_b := public.create_booking_atomic(
@@ -158,8 +164,25 @@ BEGIN
     RAISE NOTICE 'INVARIANT 1 VERIFIED: Exactly 1 active booking seat exists for target seat.';
 
     -- ========================================================================
-    -- Invariant Verification 2: Privacy-Preserving Public Ticket Verification
-    -- Check that verify_ticket_by_pnr returns valid boarding data without PII
+    -- Transaction 3: Idempotency Replay with Identical Payload
+    -- ========================================================================
+    v_res_replay := public.create_booking_atomic(
+        v_trip_id,
+        v_user_a,
+        ARRAY[v_seat_id],
+        jsonb_build_array(jsonb_build_object('fullName', 'User A Passenger', 'age', 30, 'gender', 'male', 'seatNumber', v_seat_num)),
+        jsonb_build_object('name', 'User A', 'email', 'userA@test.com', 'phone', '+91 91111 22222'),
+        v_idem_key
+    );
+
+    ASSERT (v_res_replay->>'is_idempotent_replay')::boolean = true, 'Expected is_idempotent_replay = true';
+    ASSERT v_res_replay->>'booking_id' = v_res_a->>'booking_id', 'Replay returned different booking_id';
+    RAISE NOTICE 'INVARIANT 2 VERIFIED: Idempotent replay returned original booking consistently.';
+
+    -- ========================================================================
+    -- Invariant Verification 3: Privacy-Preserving Public Ticket Verification
+    -- Verifies Bug Fix ISSUE-01: Confirmed ticket verification does NOT crash
+    -- on unassigned v_cancellation record!
     -- ========================================================================
     v_verify_res := public.verify_ticket_by_pnr(v_res_a->>'pnr');
     
@@ -177,8 +200,27 @@ BEGIN
     ASSERT NOT (v_verify_res ? 'passengers'), 'LEAK: verification exposed passengers array!';
     ASSERT NOT (v_verify_res ? 'total_fare'), 'LEAK: verification exposed total_fare!';
 
-    RAISE NOTICE 'INVARIANT 2 VERIFIED: Public ticket verification confirmed safe with zero PII leaks.';
+    RAISE NOTICE 'INVARIANT 3 VERIFIED: Confirmed ticket verification executed without error and with zero PII leaks.';
+
+    -- ========================================================================
+    -- Transaction 4: Cancellation and Restoration of Seat
+    -- ========================================================================
+    v_cancel_res := public.cancel_booking_atomic(
+        (v_res_a->>'booking_id')::uuid,
+        v_user_a,
+        'Test cancellation verification'
+    );
+
+    ASSERT (v_cancel_res->>'status') = 'cancelled', 'Booking cancellation failed';
+    ASSERT (SELECT status FROM public.trip_seats WHERE id = v_seat_id) = 'available', 'Seat was not restored to available';
+
+    -- Verify cancelled boarding pass check
+    v_verify_cancel_res := public.verify_ticket_by_pnr(v_res_a->>'pnr');
+    ASSERT (v_verify_cancel_res->>'isValidForBoarding')::boolean = false, 'Cancelled ticket should not be valid for boarding';
+    ASSERT (v_verify_cancel_res->>'isCancelled')::boolean = true, 'Cancelled ticket should have isCancelled = true';
+
+    RAISE NOTICE 'INVARIANT 4 VERIFIED: Cancellation and inventory restoration confirmed.';
     RAISE NOTICE '=======================================================';
-    RAISE NOTICE 'ALL CONCURRENCY & INTEGRITY INVARIANTS SUCCESSFULLY VERIFIED';
+    RAISE NOTICE 'ALL CONCURRENCY, IDEMPOTENCY & PRIVACY INVARIANTS VERIFIED';
     RAISE NOTICE '=======================================================';
 END $$;

@@ -46,6 +46,8 @@ DECLARE
     v_effective_user_id UUID;
     v_trip RECORD;
     v_existing_booking RECORD;
+    v_existing_seats UUID[];
+    v_requested_seats UUID[];
     v_new_booking_id UUID;
     v_pnr TEXT;
     v_total_fare NUMERIC(10,2) := 0;
@@ -85,7 +87,7 @@ BEGIN
         v_effective_user_id := p_user_id;
     END IF;
 
-    -- 1. Idempotency Check
+    -- 1. Hardened Idempotency Check with Complete Request Fingerprint
     IF p_idempotency_key IS NOT NULL AND trim(p_idempotency_key) <> '' THEN
         SELECT b.id, b.pnr, b.trip_id, b.user_id, b.total_fare, b.status, b.created_at
         INTO v_existing_booking
@@ -93,8 +95,19 @@ BEGIN
         WHERE b.idempotency_key = p_idempotency_key;
 
         IF FOUND THEN
-            -- Verify payload consistency
-            IF v_existing_booking.trip_id = p_trip_id AND v_existing_booking.user_id = v_effective_user_id THEN
+            -- Check if requested seat IDs match existing booking seats
+            SELECT array_agg(trip_seat_id ORDER BY trip_seat_id)
+            INTO v_existing_seats
+            FROM public.booking_seats
+            WHERE booking_id = v_existing_booking.id;
+
+            SELECT array_agg(s ORDER BY s)
+            INTO v_requested_seats
+            FROM unnest(p_seat_ids) s;
+
+            IF v_existing_booking.trip_id = p_trip_id 
+               AND v_existing_booking.user_id = v_effective_user_id 
+               AND v_existing_seats = v_requested_seats THEN
                 RETURN jsonb_build_object(
                     'success', true,
                     'is_idempotent_replay', true,
@@ -106,7 +119,7 @@ BEGIN
                 );
             ELSE
                 RAISE EXCEPTION 'IDEMPOTENCY_KEY_REUSED_WITH_DIFFERENT_PAYLOAD' 
-                    USING HINT = 'The idempotency key has already been used for a different request';
+                    USING HINT = 'The idempotency key has already been used for a different request payload';
             END IF;
         END IF;
     END IF;
@@ -140,8 +153,8 @@ BEGIN
     END IF;
 
     -- 4. ROW-LEVEL LOCKING: Lock requested trip_seats records FOR UPDATE
-    -- Note: In PostgreSQL, FOR UPDATE cannot be combined with aggregate functions (count, sum).
-    -- Therefore, we first lock individual rows in deterministic ORDER BY id to eliminate deadlocks.
+    -- In PostgreSQL, FOR UPDATE cannot be combined with aggregate functions (count, sum).
+    -- First, lock individual rows in deterministic ORDER BY id to eliminate deadlocks:
     PERFORM id
     FROM public.trip_seats
     WHERE id = ANY(p_seat_ids)
@@ -165,11 +178,33 @@ BEGIN
             USING HINT = 'One or more selected seats are no longer available or already booked';
     END IF;
 
-    -- 5. Validate Passenger Payload Count
+    -- 5. Validate Passenger-Seat Mapping & Payload Integrity
     IF jsonb_array_length(p_passengers) <> array_length(p_seat_ids, 1) THEN
         RAISE EXCEPTION 'PASSENGER_SEAT_COUNT_MISMATCH' 
             USING HINT = 'Number of passengers must equal number of selected seats';
     END IF;
+
+    FOR v_idx IN 0 .. (jsonb_array_length(p_passengers) - 1) LOOP
+        -- Verify required passenger fields
+        IF p_passengers->v_idx->>'fullName' IS NULL OR trim(p_passengers->v_idx->>'fullName') = '' THEN
+            RAISE EXCEPTION 'INVALID_PASSENGER_DATA' USING HINT = 'Passenger full name is required';
+        END IF;
+        IF (p_passengers->v_idx->>'age')::integer <= 0 OR (p_passengers->v_idx->>'age')::integer > 120 THEN
+            RAISE EXCEPTION 'INVALID_PASSENGER_AGE' USING HINT = 'Passenger age must be between 1 and 120';
+        END IF;
+        IF p_passengers->v_idx->>'gender' NOT IN ('male', 'female', 'other') THEN
+            RAISE EXCEPTION 'INVALID_PASSENGER_GENDER' USING HINT = 'Passenger gender must be male, female, or other';
+        END IF;
+
+        -- Verify seat_number belongs to one of the locked requested seats
+        IF NOT EXISTS (
+            SELECT 1 FROM public.trip_seats
+            WHERE id = ANY(p_seat_ids) AND seat_number = p_passengers->v_idx->>'seatNumber'
+        ) THEN
+            RAISE EXCEPTION 'PASSENGER_SEAT_MISMATCH'
+                USING HINT = 'Passenger assigned seat does not match any selected seat';
+        END IF;
+    END LOOP;
 
     -- 6. Generate Unique PNR
     LOOP
@@ -478,6 +513,7 @@ $$;
 -- 3. PRIVACY-PRESERVING PUBLIC TICKET VERIFICATION RPC
 -- Returns ONLY non-PII operational fields for boarding authenticity validation.
 -- Explicitly omits: Passenger names, age, gender, phone numbers, email, total fare.
+-- BUG FIX: Uses nullable TIMESTAMPTZ variable to avoid unassigned RECORD access on confirmed bookings.
 -- ----------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION public.verify_ticket_by_pnr(p_pnr TEXT)
 RETURNS JSONB
@@ -489,7 +525,7 @@ AS $$
 DECLARE
     v_booking RECORD;
     v_seats TEXT[];
-    v_cancellation RECORD;
+    v_cancelled_at TIMESTAMPTZ := NULL;
 BEGIN
     -- Query booking with associated trip, route, vehicle, and operator
     SELECT 
@@ -524,10 +560,10 @@ BEGIN
     FROM public.booking_seats
     WHERE booking_id = v_booking.id;
 
-    -- If cancelled, retrieve cancellation timestamp
+    -- If cancelled, retrieve cancellation timestamp safely
     IF v_booking.status = 'cancelled' THEN
         SELECT created_at
-        INTO v_cancellation
+        INTO v_cancelled_at
         FROM public.cancellations
         WHERE booking_id = v_booking.id
         ORDER BY created_at DESC
@@ -548,7 +584,7 @@ BEGIN
         'busRegistration', v_booking.bus_reg,
         'seats', coalesce(v_seats, ARRAY[]::TEXT[]),
         'isCancelled', (v_booking.status = 'cancelled'),
-        'cancelledAt', v_cancellation.created_at
+        'cancelledAt', v_cancelled_at
     );
 END;
 $$;

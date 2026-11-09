@@ -1,56 +1,126 @@
 import { NextRequest, NextResponse } from "next/server";
 import { loginSchema } from "@/lib/validation/schemas";
 import { db } from "@/lib/database/in-memory-store";
+import { isSupabaseConfigured } from "@/lib/supabase/config";
+import { createClient as createServerSupabaseClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { checkRateLimit, getClientIp } from "@/lib/security/rate-limit";
+import { errorResponse } from "@/lib/auth/server";
 
 export async function POST(req: NextRequest) {
   try {
+    // 1. Rate limiting: Max 15 login attempts per 5 minutes per IP
+    const clientIp = getClientIp(req);
+    const rateCheck = checkRateLimit(`login:${clientIp}`, 15, 300_000);
+    if (!rateCheck.allowed) {
+      return errorResponse(
+        "RATE_LIMITED",
+        `Too many login attempts. Please retry in ${rateCheck.resetInSeconds} seconds.`,
+        429
+      );
+    }
+
+    // 2. Validate request body
     const body = await req.json();
     const parsed = loginSchema.safeParse(body);
     if (!parsed.success) {
-      return NextResponse.json({ error: "Validation error", details: parsed.error.format() }, { status: 400 });
+      return errorResponse("VALIDATION_ERROR", "Invalid login credentials format", 400, parsed.error.format());
     }
 
     const email = parsed.data.email.toLowerCase().trim();
-    // Check known demo accounts or find profile
-    let matchedProfile = Array.from(db.profiles.values()).find((p) => p.email.toLowerCase() === email);
+    const password = parsed.data.password;
 
-    if (!matchedProfile) {
-      // Auto-provision demo passenger profile
-      matchedProfile = {
-        id: `usr-${Date.now()}`,
+    let userPayload: {
+      id: string;
+      email: string;
+      fullName: string;
+      role: "passenger" | "operator" | "admin";
+    };
+
+    // 3. Supabase Auth Verification
+    if (isSupabaseConfigured()) {
+      const supabase = await createServerSupabaseClient();
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
         email,
-        full_name: email.split("@")[0].toUpperCase(),
-        role: email.includes("operator") ? "operator" : email.includes("admin") ? "admin" : "passenger",
-        phone: "+91 99999 88888",
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
+        password,
+      });
+
+      if (authError || !authData.user) {
+        return errorResponse("INVALID_CREDENTIALS", "Invalid email or password", 401);
+      }
+
+      // Query verified profile from public.profiles
+      const adminClient = createAdminClient();
+      const { data: profile } = await adminClient
+        .from("profiles")
+        .select("id, email, full_name, role")
+        .eq("id", authData.user.id)
+        .single();
+
+      const userRole = (profile?.role as any) || (authData.user.user_metadata?.role as any) || "passenger";
+      const fullName = profile?.full_name || authData.user.user_metadata?.full_name || email.split("@")[0];
+
+      userPayload = {
+        id: authData.user.id,
+        email: authData.user.email || email,
+        fullName,
+        role: userRole,
       };
-      db.profiles.set(matchedProfile.id, matchedProfile);
+    } else {
+      // 4. Offline / Local Dev Authentication
+      const profile = Array.from(db.profiles.values()).find((p) => p.email.toLowerCase() === email);
+
+      // SECURITY INVARIANT: Do NOT auto-create accounts on login.
+      if (!profile) {
+        return errorResponse("INVALID_CREDENTIALS", "Invalid email or password", 401);
+      }
+
+      // Verify passwords (demo credentials or development password)
+      const validPasswords: Record<string, string> = {
+        "passenger@algions.com": "Passenger@123",
+        "operator@royalexpress.in": "Operator@123",
+        "admin@algions.com": "Admin@123",
+      };
+
+      const expectedPassword = validPasswords[email];
+      if (expectedPassword && password !== expectedPassword && password !== "Password@123") {
+        return errorResponse("INVALID_CREDENTIALS", "Invalid email or password", 401);
+      }
+
+      userPayload = {
+        id: profile.id,
+        email: profile.email,
+        fullName: profile.full_name,
+        role: profile.role,
+      };
     }
+
+    const redirectUrl =
+      userPayload.role === "admin"
+        ? "/operator/reports"
+        : userPayload.role === "operator"
+        ? "/operator/dashboard"
+        : "/passenger/dashboard";
 
     const response = NextResponse.json({
       success: true,
-      user: matchedProfile,
-      redirectUrl: matchedProfile.role === "operator" ? "/operator/dashboard" : "/passenger/dashboard",
+      user: userPayload,
+      redirectUrl,
     });
 
-    // Set secure cookie
+    // Set secure HTTP-only session cookie
     response.cookies.set({
       name: "algions_user_session",
-      value: JSON.stringify({
-        id: matchedProfile.id,
-        email: matchedProfile.email,
-        role: matchedProfile.role,
-        fullName: matchedProfile.full_name,
-      }),
+      value: JSON.stringify(userPayload),
       path: "/",
-      httpOnly: false, // Accessible by UI client for instant role redirection
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
+      maxAge: 60 * 60 * 24 * 7, // 7 days
     });
 
     return response;
   } catch (error: any) {
-    return NextResponse.json({ error: error.message || "Failed to log in" }, { status: 500 });
+    return errorResponse("INTERNAL_SERVER_ERROR", error.message || "Failed to log in", 500);
   }
 }
-

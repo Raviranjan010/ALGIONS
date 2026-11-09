@@ -38,6 +38,7 @@ export const QRCodeView: React.FC<QRCodeViewProps> = ({
   return (
     <div className="flex flex-col items-center justify-center p-3 rounded-xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 shadow-xs">
       {dataUrl ? (
+        /* eslint-disable-next-line @next/next/no-img-element */
         <img
           src={dataUrl}
           alt={`Verification QR Code for PNR ${pnr}`}

@@ -239,4 +239,97 @@ describe("PostgreSQL Multi-Session Concurrency & Row-Locking Simulation", () => 
     expect(activeAllocations.length).toBe(1);
     expect(activeAllocations[0].booking_id).toBe(rebooking.booking.id);
   });
+
+  // --------------------------------------------------------------------------
+  // TEST 5: Idempotency Protection - Identical Payload Replay
+  // --------------------------------------------------------------------------
+  it("TEST 5: Idempotent Replay: Retrying with identical key and payload returns original confirmed booking", async () => {
+    const seats = db.getTripSeats(TRIP_ID);
+    const targetSeat = seats.find((s) => s.status === "available")!;
+    const idempotencyKey = `idempotent-key-${Date.now()}`;
+
+    const original = await db.createBookingAtomic({
+      tripId: TRIP_ID,
+      userId: "idempotency-passenger",
+      seatIds: [targetSeat.id],
+      passengers: [{ fullName: "Stable User", age: 30, gender: "male", seatNumber: targetSeat.seat_number }],
+      contact: { name: "Stable User", email: "stable@test.com", phone: "+91 91111 00000" },
+      idempotencyKey,
+    });
+
+    expect(original.isIdempotentReplay).toBe(false);
+    expect(original.booking.status).toBe("confirmed");
+
+    // Replay with identical payload and key
+    const replay = await db.createBookingAtomic({
+      tripId: TRIP_ID,
+      userId: "idempotency-passenger",
+      seatIds: [targetSeat.id],
+      passengers: [{ fullName: "Stable User", age: 30, gender: "male", seatNumber: targetSeat.seat_number }],
+      contact: { name: "Stable User", email: "stable@test.com", phone: "+91 91111 00000" },
+      idempotencyKey,
+    });
+
+    expect(replay.isIdempotentReplay).toBe(true);
+    expect(replay.booking.id).toBe(original.booking.id);
+    expect(replay.booking.pnr).toBe(original.booking.pnr);
+  });
+
+  // --------------------------------------------------------------------------
+  // TEST 6: Idempotency Conflict - Reused Key with Different Payload Rejected
+  // --------------------------------------------------------------------------
+  it("TEST 6: Idempotency Conflict: Reusing same key with different seat payload is strictly rejected", async () => {
+    const seats = db.getTripSeats(TRIP_ID).filter((s) => s.status === "available");
+    expect(seats.length).toBeGreaterThanOrEqual(2);
+    const seat1 = seats[0];
+    const seat2 = seats[1];
+    const idempotencyKey = `conflict-key-${Date.now()}`;
+
+    // Booking 1 with seat1
+    await db.createBookingAtomic({
+      tripId: TRIP_ID,
+      userId: "conflict-passenger",
+      seatIds: [seat1.id],
+      passengers: [{ fullName: "User 1", age: 30, gender: "male", seatNumber: seat1.seat_number }],
+      contact: { name: "User 1", email: "u1@test.com", phone: "+91 91111 00001" },
+      idempotencyKey,
+    });
+
+    // Booking 2 with DIFFERENT seat2 using the SAME key
+    await expect(
+      db.createBookingAtomic({
+        tripId: TRIP_ID,
+        userId: "conflict-passenger",
+        seatIds: [seat2.id],
+        passengers: [{ fullName: "User 1", age: 30, gender: "male", seatNumber: seat2.seat_number }],
+        contact: { name: "User 1", email: "u1@test.com", phone: "+91 91111 00001" },
+        idempotencyKey,
+      })
+    ).rejects.toThrow("IDEMPOTENCY_KEY_REUSED_WITH_DIFFERENT_PAYLOAD");
+  });
+
+  // --------------------------------------------------------------------------
+  // TEST 7: Passenger-to-Seat Validation & Tamper Prevention
+  // --------------------------------------------------------------------------
+  it("TEST 7: Passenger Seat Mismatch: Reject booking when passenger assigned seat does not match locked seats", async () => {
+    const seats = db.getTripSeats(TRIP_ID).filter((s) => s.status === "available");
+    const targetSeat = seats[0];
+
+    await expect(
+      db.createBookingAtomic({
+        tripId: TRIP_ID,
+        userId: "mismatch-user",
+        seatIds: [targetSeat.id],
+        passengers: [
+          {
+            fullName: "Mismatch Passenger",
+            age: 28,
+            gender: "female",
+            seatNumber: "99Z", // Seat not in locked seatIds
+          },
+        ],
+        contact: { name: "Mismatch", email: "mismatch@test.com", phone: "+91 95555 00000" },
+      })
+    ).rejects.toThrow("PASSENGER_SEAT_MISMATCH");
+  });
 });

@@ -26,15 +26,15 @@ export const passengerInputSchema = z.object({
 
 // Create Booking Request Schema
 export const createBookingSchema = z.object({
-  tripId: z.string().uuid("Invalid trip ID"),
-  seatIds: z.array(z.string().uuid("Invalid seat ID")).min(1, "At least one seat must be selected").max(6, "Maximum 6 seats per booking"),
+  tripId: z.string().min(1, "Invalid trip ID"),
+  seatIds: z.array(z.string().min(1, "Invalid seat ID")).min(1, "At least one seat must be selected").max(6, "Maximum 6 seats per booking"),
   passengers: z.array(passengerInputSchema).min(1, "At least one passenger is required"),
   contact: z.object({
     name: z.string().min(2, "Contact name is required"),
     email: z.string().email("Invalid contact email"),
-    phone: z.string().min(7, "Valid contact phone number is required").max(15),
+    phone: z.string().min(7, "Valid contact phone number is required").max(20),
   }),
-  idempotencyKey: z.string().uuid("Invalid idempotency key").optional(),
+  idempotencyKey: z.string().min(1).max(128).optional(),
 }).refine((data) => data.seatIds.length === data.passengers.length, {
   message: "Number of passengers must match the number of selected seats",
   path: ["passengers"],
@@ -44,7 +44,7 @@ export type CreateBookingInput = z.infer<typeof createBookingSchema>;
 
 // Cancel Booking Request Schema
 export const cancelBookingSchema = z.object({
-  bookingId: z.string().uuid("Invalid booking ID"),
+  bookingId: z.string().min(1, "Invalid booking ID"),
   reason: z.string().min(3, "Cancellation reason must be at least 3 characters").max(500),
 });
 

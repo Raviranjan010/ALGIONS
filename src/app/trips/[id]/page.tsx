@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, use } from "react";
+import React, { useEffect, useState, useCallback, use } from "react";
 import { useRouter } from "next/navigation";
 import { Trip, TripSeat } from "@/types";
 import { SeatMap } from "@/components/booking/SeatMap";
@@ -49,7 +49,7 @@ export default function TripDetailPage({
   >([]);
 
   // Load trip and seats
-  const loadTripData = async () => {
+  const loadTripData = useCallback(async () => {
     try {
       const [tripRes, seatsRes] = await Promise.all([
         fetch(`/api/trips/${tripId}`),
@@ -65,11 +65,11 @@ export default function TripDetailPage({
     } finally {
       setLoading(false);
     }
-  };
+  }, [tripId]);
 
   useEffect(() => {
     loadTripData();
-  }, [tripId]);
+  }, [loadTripData]);
 
   // Handle seat toggle
   const handleSeatToggle = (seat: TripSeat) => {

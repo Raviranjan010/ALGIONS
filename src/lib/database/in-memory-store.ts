@@ -389,11 +389,24 @@ export class InMemoryDatabase {
     booking: Booking;
   }> {
     return this.runTransaction(async () => {
-      // 1. Idempotency Check
+      // 1. Idempotency Check with Complete Seat & Fingerprint Comparison
       if (params.idempotencyKey) {
         for (const existing of this.bookings.values()) {
           if (existing.idempotency_key === params.idempotencyKey) {
-            if (existing.trip_id === params.tripId && existing.user_id === params.userId) {
+            const existingSeats = Array.from(this.bookingSeats.values())
+              .filter((bs) => bs.booking_id === existing.id)
+              .map((bs) => bs.trip_seat_id)
+              .sort();
+            const requestedSeats = [...params.seatIds].sort();
+            const seatsMatch =
+              existingSeats.length === requestedSeats.length &&
+              existingSeats.every((val, idx) => val === requestedSeats[idx]);
+
+            if (
+              existing.trip_id === params.tripId &&
+              existing.user_id === params.userId &&
+              seatsMatch
+            ) {
               const fullBooking = this.getBookingById(existing.id);
               if (fullBooking) {
                 return {
@@ -454,9 +467,21 @@ export class InMemoryDatabase {
         totalFare += Number(seat.fare);
       }
 
-      // 5. Validate Passenger Count
+      // 5. Validate Passenger Count & Seat Mapping
       if (params.passengers.length !== params.seatIds.length) {
         throw new Error("PASSENGER_SEAT_COUNT_MISMATCH");
+      }
+      for (const p of params.passengers) {
+        if (!p.fullName || !p.fullName.trim()) {
+          throw new Error("INVALID_PASSENGER_DATA: Full name is required");
+        }
+        if (p.age <= 0 || p.age > 120) {
+          throw new Error("INVALID_PASSENGER_AGE: Age must be between 1 and 120");
+        }
+        const seatMatches = lockedSeats.some((ls) => ls.seat_number === p.seatNumber);
+        if (!seatMatches) {
+          throw new Error("PASSENGER_SEAT_MISMATCH: Passenger assigned seat does not match any selected seat");
+        }
       }
 
       // 6. Generate Unique PNR
