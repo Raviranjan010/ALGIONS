@@ -4,7 +4,13 @@ import { z } from "zod";
 export const searchTripsSchema = z.object({
   origin: z.string().min(1, "Origin city is required"),
   destination: z.string().min(1, "Destination city is required"),
-  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Date must be YYYY-MM-DD"),
+  date: z
+    .string()
+    .optional()
+    .default("")
+    .refine((val) => val === "" || /^\d{4}-\d{2}-\d{2}$/.test(val), {
+      message: "Date must be YYYY-MM-DD",
+    }),
   passengers: z.coerce.number().int().min(1).max(10).default(1),
 });
 
