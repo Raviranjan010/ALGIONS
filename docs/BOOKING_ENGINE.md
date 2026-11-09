@@ -73,3 +73,4 @@ Cancellations execute atomically via `cancel_booking_atomic`:
 3. **Seat Deactivation**: Sets `is_active = false` on `booking_seats`.
 4. **Inventory Restoration**: Updates `trip_seats` setting `status = 'available'`.
 5. **Immediate Re-booking**: Because `is_active = false`, the partial unique index allows subsequent sessions to immediately book the released seat.
+

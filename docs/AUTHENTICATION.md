@@ -112,3 +112,4 @@ Sensitive endpoints enforce a sliding-window rate limit (`src/lib/security/rate-
 - **Public Verification (`/api/bookings/verify/*`)**: Max 60 requests / minute.
 - **Booking Creation (`/api/bookings`)**: Max 30 attempts / 5 minutes.
 - **Cancellation (`/api/cancellations`)**: Max 20 attempts / 5 minutes.
+

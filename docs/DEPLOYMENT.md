@@ -43,3 +43,4 @@
 1. Navigate to **Authentication -> Users** in the Supabase Dashboard.
 2. For each demo account (`passenger@algions.com`, `operator@royalexpress.in`, `admin@algions.com`), trigger a password reset or set a strong, random password.
 3. Restrict administrative access to verified operations personnel.
+

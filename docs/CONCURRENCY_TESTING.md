@@ -65,3 +65,4 @@ ROLLBACK;
 - **Unit & Integration Suite**: `tests/integration/postgres-concurrency-multi-session.test.ts` (7 passing tests).
 - **Live Supabase Suite**: `tests/integration/real-postgres-concurrency.test.ts` (4 passing tests with live connection).
 - **PL/pgSQL Test Harness**: `supabase/tests/concurrency_test.sql` (100% assertions verified).
+

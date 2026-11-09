@@ -47,3 +47,4 @@
 - [ ] Scannable QR code opens `/verify?pnr=ALG-XXXXXX` and displays verified boarding status.
 - [ ] Operator dashboard displays manifests and financial reports strictly for that operator.
 - [ ] Rotate demo passwords in Supabase Auth before sharing public URL.
+

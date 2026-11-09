@@ -193,3 +193,4 @@ The audit revealed 12 distinct issues ranging from Critical security vulnerabili
 | **ISSUE-12** | MEDIUM | Business Logic | **FIXED** | Strict passenger seat mapping validation in RPC |
 
 ---
+

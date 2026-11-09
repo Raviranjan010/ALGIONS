@@ -20,3 +20,4 @@
 4. **Offline Mock Fallback**:
    - To enable offline test suites and developer onboarding without a remote database, services provide an in-memory transactional fallback.
    - In production (`NODE_ENV === 'production'`), this fallback is explicitly disabled by `assertProductionEnv()`.
+

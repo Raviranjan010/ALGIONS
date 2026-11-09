@@ -25,3 +25,4 @@
    `.env.local` and `.env` are strictly excluded in `.gitignore`.
 3. **Template**:
    Use `.env.example` as the canonical template when setting up new deployment environments.
+

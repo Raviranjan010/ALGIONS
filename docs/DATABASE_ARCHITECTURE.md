@@ -73,3 +73,4 @@ The ALGIONS database schema is engineered for strict relational integrity, concu
 - **Permissions**: Granted to `anon`, `authenticated`, and `service_role`.
 - **Bug Fix Applied (ISSUE-01)**: Declares nullable `v_cancelled_at TIMESTAMPTZ := NULL;`, eliminating unassigned RECORD dereference on confirmed tickets.
 - **Privacy Assurance**: Returns operational boarding pass status while withholding all passenger PII.
+
