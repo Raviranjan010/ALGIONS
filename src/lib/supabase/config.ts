@@ -9,3 +9,4 @@ export function isSupabaseConfigured(): boolean {
     url.startsWith("https://")
   );
 }
+
