@@ -83,7 +83,15 @@ export async function POST(req: NextRequest) {
       };
 
       const expectedPassword = validPasswords[email];
-      if (expectedPassword && password !== expectedPassword && password !== "Password@123") {
+      const isAcceptedDevPassword = 
+        password === expectedPassword ||
+        password === "algions2026" ||
+        password === "Password@123" ||
+        password === "Passenger@123" ||
+        password === "Operator@123" ||
+        password === "Admin@123";
+
+      if (expectedPassword && !isAcceptedDevPassword) {
         return errorResponse("INVALID_CREDENTIALS", "Invalid email or password", 401);
       }
 

@@ -1,5 +1,5 @@
 -- ============================================================================
--- ALGIONS BUS BOOKING MANAGEMENT SYSTEM
+-- RYDVANTA BUS BOOKING MANAGEMENT SYSTEM
 -- Seed Data: supabase/seed.sql
 -- Realistic bus operators, vehicles, seat layouts, routes, stops, trips, and demo bookings
 -- ============================================================================
@@ -38,8 +38,6 @@ DECLARE
     c INT;
     s_num TEXT;
     s_type TEXT;
-    v_seat_id UUID;
-    t_seat_id UUID;
 BEGIN
     -- 1. OPERATORS
     INSERT INTO public.operators (id, name, slug, code, contact_email, contact_phone, address, is_active)
@@ -54,38 +52,57 @@ BEGIN
     VALUES
         (veh_volvo1, op_royal, 'MH-01-AB-1234', 'Volvo 9600 Multi-Axle AC Sleeper', 30, 'sleeper_2x1', true),
         (veh_sleeper1, op_deccan, 'KA-01-CD-5678', 'Scania Metrolink HD Executive', 36, '2x2', true),
-        (veh_scania1, op_western, 'DL-01-EF-9012', 'BharatBenz AC Seater', 32, '2x2', true),
-        (veh_benz1, op_deccan, 'KA-05-GH-3456', 'Volvo B11R Executive 2x1', 24, '2x1', true)
+        (veh_scania1, op_western, 'DL-01-EF-9012', 'BharatBenz AC Executive', 32, '2x2', true),
+        (veh_benz1, op_deccan, 'TN-01-GH-3456', 'Volvo B11R Multi-Axle 2x2', 36, '2x2', true)
     ON CONFLICT (id) DO NOTHING;
 
-    -- 3. VEHICLE SEATS GENERATION FOR veh_volvo1 (30 Sleeper berths: 10 rows x 3 berths: Aisle between col 1 and col 2)
+    -- 3. VEHICLE SEATS GENERATION FOR veh_volvo1 (30 Sleeper berths)
     FOR r IN 1..10 LOOP
-        -- Column 1: Single Sleeper (Window)
         s_num := 'L' || r || 'A';
         INSERT INTO public.vehicle_seats (vehicle_id, seat_number, deck, seat_row, seat_column, seat_type, is_active)
         VALUES (veh_volvo1, s_num, 'lower', r, 1, 'sleeper', true)
         ON CONFLICT (vehicle_id, seat_number) DO NOTHING;
 
-        -- Column 2: Double Sleeper - Aisle
         s_num := 'L' || r || 'B';
         INSERT INTO public.vehicle_seats (vehicle_id, seat_number, deck, seat_row, seat_column, seat_type, is_active)
         VALUES (veh_volvo1, s_num, 'lower', r, 2, 'sleeper', true)
         ON CONFLICT (vehicle_id, seat_number) DO NOTHING;
 
-        -- Column 3: Double Sleeper - Window
         s_num := 'L' || r || 'C';
         INSERT INTO public.vehicle_seats (vehicle_id, seat_number, deck, seat_row, seat_column, seat_type, is_active)
         VALUES (veh_volvo1, s_num, 'lower', r, 3, 'sleeper', true)
         ON CONFLICT (vehicle_id, seat_number) DO NOTHING;
     END LOOP;
 
-    -- VEHICLE SEATS GENERATION FOR veh_sleeper1 (36 Seater: 9 rows x 4 seats: 2x2 layout)
+    -- VEHICLE SEATS FOR veh_sleeper1 (36 Seater: 9 rows x 4 seats: 2x2 layout)
     FOR r IN 1..9 LOOP
         FOR c IN 1..4 LOOP
-            s_num := r || chr(64 + c); -- 1A, 1B, 1C, 1D
+            s_num := r || chr(64 + c);
             s_type := CASE WHEN c IN (1, 4) THEN 'window' ELSE 'aisle' END;
             INSERT INTO public.vehicle_seats (vehicle_id, seat_number, deck, seat_row, seat_column, seat_type, is_active)
             VALUES (veh_sleeper1, s_num, 'lower', r, c, s_type, true)
+            ON CONFLICT (vehicle_id, seat_number) DO NOTHING;
+        END LOOP;
+    END LOOP;
+
+    -- VEHICLE SEATS FOR veh_scania1 (32 Seater: 8 rows x 4 seats: 2x2 layout)
+    FOR r IN 1..8 LOOP
+        FOR c IN 1..4 LOOP
+            s_num := r || chr(64 + c);
+            s_type := CASE WHEN c IN (1, 4) THEN 'window' ELSE 'aisle' END;
+            INSERT INTO public.vehicle_seats (vehicle_id, seat_number, deck, seat_row, seat_column, seat_type, is_active)
+            VALUES (veh_scania1, s_num, 'lower', r, c, s_type, true)
+            ON CONFLICT (vehicle_id, seat_number) DO NOTHING;
+        END LOOP;
+    END LOOP;
+
+    -- VEHICLE SEATS FOR veh_benz1 (36 Seater: 9 rows x 4 seats: 2x2 layout)
+    FOR r IN 1..9 LOOP
+        FOR c IN 1..4 LOOP
+            s_num := r || chr(64 + c);
+            s_type := CASE WHEN c IN (1, 4) THEN 'window' ELSE 'aisle' END;
+            INSERT INTO public.vehicle_seats (vehicle_id, seat_number, deck, seat_row, seat_column, seat_type, is_active)
+            VALUES (veh_benz1, s_num, 'lower', r, c, s_type, true)
             ON CONFLICT (vehicle_id, seat_number) DO NOTHING;
         END LOOP;
     END LOOP;
@@ -95,12 +112,11 @@ BEGIN
     VALUES
         (rt_mum_pun, op_royal, 'EXP-101', 'Mumbai', 'Pune', 152.00, 210, true),
         (rt_blr_hyd, op_deccan, 'EXP-202', 'Bangalore', 'Hyderabad', 570.00, 540, true),
-        (rt_del_jai, op_western, 'EXP-303', 'Delhi', 'Jaipur', 280.00, 330, true),
-        (rt_chn_blr, op_deccan, 'EXP-404', 'Chennai', 'Bangalore', 350.00, 360, true)
+        (rt_del_jai, op_western, 'EXP-303', 'Delhi', 'Jaipur', 280.00, 315, true),
+        (rt_chn_blr, op_deccan, 'EXP-404', 'Chennai', 'Bangalore', 350.00, 405, true)
     ON CONFLICT (id) DO NOTHING;
 
     -- 5. ROUTE STOPS
-    -- Mumbai -> Pune stops
     INSERT INTO public.route_stops (route_id, stop_name, city, stop_order, duration_from_origin_mins, distance_from_origin_km)
     VALUES
         (rt_mum_pun, 'Borivali West (Gokul Hotel)', 'Mumbai', 1, 0, 0),
@@ -108,12 +124,7 @@ BEGIN
         (rt_mum_pun, 'Vashi Highway Plaza', 'Navi Mumbai', 3, 90, 48),
         (rt_mum_pun, 'Lonavala Expressway Exit', 'Lonavala', 4, 150, 95),
         (rt_mum_pun, 'Wakad Bridge', 'Pune', 5, 190, 140),
-        (rt_mum_pun, 'Swargate Terminal', 'Pune', 6, 210, 152)
-    ON CONFLICT (route_id, stop_order) DO NOTHING;
-
-    -- Bangalore -> Hyderabad stops
-    INSERT INTO public.route_stops (route_id, stop_name, city, stop_order, duration_from_origin_mins, distance_from_origin_km)
-    VALUES
+        (rt_mum_pun, 'Swargate Terminal', 'Pune', 6, 210, 152),
         (rt_blr_hyd, 'Majestic Bus Stand', 'Bangalore', 1, 0, 0),
         (rt_blr_hyd, 'Hebbal Flyover', 'Bangalore', 2, 40, 15),
         (rt_blr_hyd, 'Anantapur Toll', 'Anantapur', 3, 240, 215),
@@ -127,12 +138,12 @@ BEGIN
     VALUES
         (trip_1, op_royal, rt_mum_pun, veh_volvo1, 'RYL-101-MUMPUN', (now() + interval '1 day' + interval '6 hours'), (now() + interval '1 day' + interval '9 hours 30 mins'), 750.00, 'scheduled'),
         (trip_2, op_deccan, rt_blr_hyd, veh_sleeper1, 'DEC-202-BLRHYD', (now() + interval '1 day' + interval '21 hours'), (now() + interval '2 days' + interval '6 hours'), 1450.00, 'scheduled'),
-        (trip_3, op_western, rt_del_jai, veh_scania1, 'WST-303-DELJAI', (now() + interval '2 days' + interval '7 hours'), (now() + interval '2 days' + interval '12 hours 30 mins'), 650.00, 'scheduled'),
-        (trip_4, op_royal, rt_mum_pun, veh_volvo1, 'RYL-104-MUMPUN-EVE', (now() + interval '2 days' + interval '18 hours'), (now() + interval '2 days' + interval '21 hours 30 mins'), 850.00, 'scheduled')
+        (trip_3, op_western, rt_del_jai, veh_scania1, 'WST-303-DELJAI', (now() + interval '1 day' + interval '7 hours'), (now() + interval '1 day' + interval '12 hours 15 mins'), 550.00, 'scheduled'),
+        (trip_4, op_deccan, rt_chn_blr, veh_benz1, 'DEC-404-CHNBLR', (now() + interval '1 day' + interval '8 hours'), (now() + interval '1 day' + interval '14 hours 45 mins'), 650.00, 'scheduled')
     ON CONFLICT (id) DO NOTHING;
 
-    -- 7. TRIP SEATS INVENTORY GENERATION FOR trip_1 and trip_2
-    -- Trip 1 seats
+    -- 7. TRIP SEATS INVENTORY GENERATION FOR ALL 4 TRIPS
+    -- Trip 1 seats (Mumbai -> Pune)
     INSERT INTO public.trip_seats (trip_id, vehicle_seat_id, seat_number, seat_type, fare, status)
     SELECT 
         trip_1,
@@ -145,7 +156,7 @@ BEGIN
     WHERE vs.vehicle_id = veh_volvo1
     ON CONFLICT (trip_id, seat_number) DO NOTHING;
 
-    -- Trip 2 seats
+    -- Trip 2 seats (Bangalore -> Hyderabad)
     INSERT INTO public.trip_seats (trip_id, vehicle_seat_id, seat_number, seat_type, fare, status)
     SELECT 
         trip_2,
@@ -158,5 +169,30 @@ BEGIN
     WHERE vs.vehicle_id = veh_sleeper1
     ON CONFLICT (trip_id, seat_number) DO NOTHING;
 
-END $$;
+    -- Trip 3 seats (Delhi -> Jaipur)
+    INSERT INTO public.trip_seats (trip_id, vehicle_seat_id, seat_number, seat_type, fare, status)
+    SELECT 
+        trip_3,
+        vs.id,
+        vs.seat_number,
+        vs.seat_type,
+        550.00 + (CASE WHEN vs.seat_type = 'window' THEN 50 ELSE 0 END),
+        'available'
+    FROM public.vehicle_seats vs
+    WHERE vs.vehicle_id = veh_scania1
+    ON CONFLICT (trip_id, seat_number) DO NOTHING;
 
+    -- Trip 4 seats (Chennai -> Bangalore)
+    INSERT INTO public.trip_seats (trip_id, vehicle_seat_id, seat_number, seat_type, fare, status)
+    SELECT 
+        trip_4,
+        vs.id,
+        vs.seat_number,
+        vs.seat_type,
+        650.00 + (CASE WHEN vs.seat_type = 'window' THEN 50 ELSE 0 END),
+        'available'
+    FROM public.vehicle_seats vs
+    WHERE vs.vehicle_id = veh_benz1
+    ON CONFLICT (trip_id, seat_number) DO NOTHING;
+
+END $$;

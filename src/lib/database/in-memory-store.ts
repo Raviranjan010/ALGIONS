@@ -80,6 +80,28 @@ export const SEED_VEHICLES: Vehicle[] = [
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
   },
+  {
+    id: "b1000000-0000-0000-0000-000000000003",
+    operator_id: "a1000000-0000-0000-0000-000000000003",
+    registration_number: "DL-01-EF-9012",
+    model: "BharatBenz AC Executive 2x2",
+    total_capacity: 32,
+    layout_type: "2x2",
+    is_active: true,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  },
+  {
+    id: "b1000000-0000-0000-0000-000000000004",
+    operator_id: "a1000000-0000-0000-0000-000000000002",
+    registration_number: "TN-01-GH-3456",
+    model: "Volvo B11R Multi-Axle 2x2",
+    total_capacity: 36,
+    layout_type: "2x2",
+    is_active: true,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  },
 ];
 
 export const SEED_ROUTES: Route[] = [
@@ -103,6 +125,30 @@ export const SEED_ROUTES: Route[] = [
     destination_city: "Hyderabad",
     distance_km: 570,
     estimated_duration_mins: 540,
+    is_active: true,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  },
+  {
+    id: "c1000000-0000-0000-0000-000000000003",
+    operator_id: "a1000000-0000-0000-0000-000000000003",
+    route_number: "EXP-303",
+    origin_city: "Delhi",
+    destination_city: "Jaipur",
+    distance_km: 280,
+    estimated_duration_mins: 315,
+    is_active: true,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  },
+  {
+    id: "c1000000-0000-0000-0000-000000000004",
+    operator_id: "a1000000-0000-0000-0000-000000000002",
+    route_number: "EXP-404",
+    origin_city: "Chennai",
+    destination_city: "Bangalore",
+    distance_km: 350,
+    estimated_duration_mins: 405,
     is_active: true,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
@@ -235,6 +281,46 @@ export class InMemoryDatabase {
       });
     }
 
+    // Vehicle Seats for BharatBenz 2x2 (32 seats)
+    const veh3 = SEED_VEHICLES[2];
+    for (let r = 1; r <= 8; r++) {
+      ["A", "B", "C", "D"].forEach((colChar, cIdx) => {
+        const seatNum = `${r}${colChar}`;
+        const seatId = `vs-v3-${seatNum}`;
+        this.vehicleSeats.set(seatId, {
+          id: seatId,
+          vehicle_id: veh3.id,
+          seat_number: seatNum,
+          deck: "lower",
+          seat_row: r,
+          seat_column: cIdx + 1,
+          seat_type: cIdx === 0 || cIdx === 3 ? "window" : "aisle",
+          is_active: true,
+          created_at: new Date().toISOString(),
+        });
+      });
+    }
+
+    // Vehicle Seats for Volvo B11R 2x2 (36 seats)
+    const veh4 = SEED_VEHICLES[3];
+    for (let r = 1; r <= 9; r++) {
+      ["A", "B", "C", "D"].forEach((colChar, cIdx) => {
+        const seatNum = `${r}${colChar}`;
+        const seatId = `vs-v4-${seatNum}`;
+        this.vehicleSeats.set(seatId, {
+          id: seatId,
+          vehicle_id: veh4.id,
+          seat_number: seatNum,
+          deck: "lower",
+          seat_row: r,
+          seat_column: cIdx + 1,
+          seat_type: cIdx === 0 || cIdx === 3 ? "window" : "aisle",
+          is_active: true,
+          created_at: new Date().toISOString(),
+        });
+      });
+    }
+
     // 7. Trips
     const now = new Date();
     // Departure tomorrow 08:00 AM
@@ -281,6 +367,50 @@ export class InMemoryDatabase {
     };
     this.trips.set(trip2.id, trip2);
 
+    // Departure tomorrow 06:30 AM (Delhi -> Jaipur)
+    const dep3 = new Date(now);
+    dep3.setDate(dep3.getDate() + 1);
+    dep3.setHours(6, 30, 0, 0);
+    const arr3 = new Date(dep3);
+    arr3.setMinutes(arr3.getMinutes() + 315);
+
+    const trip3: Trip = {
+      id: "d1000000-0000-0000-0000-000000000003",
+      operator_id: SEED_OPERATORS[2].id,
+      route_id: SEED_ROUTES[2].id,
+      vehicle_id: veh3.id,
+      trip_code: "WST-303-DELJAI",
+      departure_time: dep3.toISOString(),
+      arrival_time: arr3.toISOString(),
+      base_fare: 550,
+      status: "scheduled",
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+    this.trips.set(trip3.id, trip3);
+
+    // Departure tomorrow 07:15 AM (Chennai -> Bangalore)
+    const dep4 = new Date(now);
+    dep4.setDate(dep4.getDate() + 1);
+    dep4.setHours(7, 15, 0, 0);
+    const arr4 = new Date(dep4);
+    arr4.setMinutes(arr4.getMinutes() + 405);
+
+    const trip4: Trip = {
+      id: "d1000000-0000-0000-0000-000000000004",
+      operator_id: SEED_OPERATORS[1].id,
+      route_id: SEED_ROUTES[3].id,
+      vehicle_id: veh4.id,
+      trip_code: "DEC-404-CHNBLR",
+      departure_time: dep4.toISOString(),
+      arrival_time: arr4.toISOString(),
+      base_fare: 650,
+      status: "scheduled",
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+    this.trips.set(trip4.id, trip4);
+
     // 8. Trip Seats Inventory for Trip 1
     this.vehicleSeats.forEach((vs) => {
       if (vs.vehicle_id === veh1.id) {
@@ -312,6 +442,46 @@ export class InMemoryDatabase {
           seat_number: vs.seat_number,
           seat_type: vs.seat_type,
           fare: trip2.base_fare + (vs.seat_type === "window" ? 50 : 0),
+          status: "available",
+          updated_at: new Date().toISOString(),
+          deck: vs.deck,
+          seat_row: vs.seat_row,
+          seat_column: vs.seat_column,
+        });
+      }
+    });
+
+    // Trip Seats Inventory for Trip 3
+    this.vehicleSeats.forEach((vs) => {
+      if (vs.vehicle_id === veh3.id) {
+        const tsId = `ts-t3-${vs.seat_number}`;
+        this.tripSeats.set(tsId, {
+          id: tsId,
+          trip_id: trip3.id,
+          vehicle_seat_id: vs.id,
+          seat_number: vs.seat_number,
+          seat_type: vs.seat_type,
+          fare: trip3.base_fare + (vs.seat_type === "window" ? 50 : 0),
+          status: "available",
+          updated_at: new Date().toISOString(),
+          deck: vs.deck,
+          seat_row: vs.seat_row,
+          seat_column: vs.seat_column,
+        });
+      }
+    });
+
+    // Trip Seats Inventory for Trip 4
+    this.vehicleSeats.forEach((vs) => {
+      if (vs.vehicle_id === veh4.id) {
+        const tsId = `ts-t4-${vs.seat_number}`;
+        this.tripSeats.set(tsId, {
+          id: tsId,
+          trip_id: trip4.id,
+          vehicle_seat_id: vs.id,
+          seat_number: vs.seat_number,
+          seat_type: vs.seat_type,
+          fare: trip4.base_fare + (vs.seat_type === "window" ? 50 : 0),
           status: "available",
           updated_at: new Date().toISOString(),
           deck: vs.deck,
@@ -804,6 +974,22 @@ export class InMemoryDatabase {
       if (originMatch && destMatch && dateMatch && trip.status !== "cancelled") {
         const fullTrip = this.getTripById(trip.id);
         if (fullTrip) results.push(fullTrip);
+      }
+    }
+
+    // Fallback: If no departures found on the exact chosen date, return all active trips on this route
+    if (results.length === 0) {
+      for (const trip of this.trips.values()) {
+        const route = this.routes.get(trip.route_id);
+        if (!route) continue;
+
+        const originMatch = route.origin_city.toLowerCase().includes(originLower);
+        const destMatch = route.destination_city.toLowerCase().includes(destLower);
+
+        if (originMatch && destMatch && trip.status !== "cancelled") {
+          const fullTrip = this.getTripById(trip.id);
+          if (fullTrip) results.push(fullTrip);
+        }
       }
     }
 

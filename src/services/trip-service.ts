@@ -31,7 +31,30 @@ export class TripService {
         query = query.gte("departure_time", dayStart).lte("departure_time", dayEnd);
       }
 
-      const { data, error } = await query;
+      let { data, error } = await query;
+
+      // Fallback: If no departures found on the exact day, retrieve upcoming scheduled trips on this route
+      if (!error && (!data || data.length === 0) && params.date) {
+        const fallbackRes = await supabase
+          .from("trips")
+          .select(`
+            *,
+            route:routes!inner(*),
+            operator:operators(*),
+            vehicle:vehicles(*),
+            seats:trip_seats(id, status)
+          `)
+          .ilike("route.origin_city", `%${params.origin.trim()}%`)
+          .ilike("route.destination_city", `%${params.destination.trim()}%`)
+          .in("status", ["scheduled", "boarding"])
+          .order("departure_time", { ascending: true })
+          .limit(10);
+
+        if (!fallbackRes.error && fallbackRes.data) {
+          data = fallbackRes.data;
+        }
+      }
+
       if (error || !data) return [];
 
       return data.map((t: any) => {
