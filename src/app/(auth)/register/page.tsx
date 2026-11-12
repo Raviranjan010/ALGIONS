@@ -32,7 +32,7 @@ export default function RegisterPage() {
         body: JSON.stringify({ fullName, email, password, role, phone }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Registration failed");
+      if (!res.ok) throw new Error(data.error?.message || data.error || "Registration failed");
 
       router.push(data.redirectUrl || "/passenger/bookings");
       router.refresh();
@@ -112,6 +112,7 @@ export default function RegisterPage() {
                 <Label className="text-xs font-bold text-charcoal">Email Address</Label>
                 <Input
                   type="email"
+                  autoComplete="email"
                   placeholder="name@example.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
@@ -136,6 +137,7 @@ export default function RegisterPage() {
                 <Label className="text-xs font-bold text-charcoal">Password</Label>
                 <Input
                   type="password"
+                  autoComplete="new-password"
                   placeholder="Create a strong password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}

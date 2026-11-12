@@ -21,7 +21,12 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const parsed = createBookingSchema.safeParse(body);
     if (!parsed.success) {
-      return errorResponse("VALIDATION_ERROR", "Invalid booking payload", 400, parsed.error.format());
+      return errorResponse(
+        "VALIDATION_ERROR",
+        parsed.error.issues.map((issue) => issue.message).join(" "),
+        400,
+        parsed.error.format()
+      );
     }
 
     // A verified account session is required; never resolve an account from a submitted email.

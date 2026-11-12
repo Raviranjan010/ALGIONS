@@ -7,13 +7,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ShieldCheck, UserCheck, Loader2, AlertCircle } from "lucide-react";
+import { Loader2, AlertCircle } from "lucide-react";
 import { RydvantaLogo } from "@/components/brand/RydvantaLogo";
 
 export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("algions2026");
+  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -29,7 +29,7 @@ export default function LoginPage() {
         body: JSON.stringify({ email, password }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Login failed");
+      if (!res.ok) throw new Error(data.error?.message || data.error || "Login failed");
 
       router.push(data.redirectUrl || "/passenger/bookings");
       router.refresh();
@@ -38,11 +38,6 @@ export default function LoginPage() {
     } finally {
       setLoading(false);
     }
-  };
-
-  const setDemoUser = (demoEmail: string) => {
-    setEmail(demoEmail);
-    setPassword("algions2026");
   };
 
   return (
@@ -59,36 +54,6 @@ export default function LoginPage() {
           <p className="text-xs text-charcoal-muted">
             Sign in to access your passenger reservations or operator management portal
           </p>
-        </div>
-
-        {/* Quick Demo Personas Pills */}
-        <div className="p-4 rounded-2xl bg-ivory-soft border border-charcoal-border space-y-2">
-          <span className="text-[11px] font-bold uppercase tracking-wider text-forest block">
-            Quick Demo Login Personas:
-          </span>
-          <div className="flex flex-wrap gap-2 text-xs">
-            <button
-              type="button"
-              onClick={() => setDemoUser("passenger@algions.com")}
-              className="px-3 py-1.5 bg-white hover:bg-ivory text-charcoal font-bold rounded-xl border border-charcoal-border shadow-xs transition-colors"
-            >
-              Passenger (Ravi)
-            </button>
-            <button
-              type="button"
-              onClick={() => setDemoUser("operator@royalexpress.in")}
-              className="px-3 py-1.5 bg-white hover:bg-ivory text-forest font-bold rounded-xl border border-charcoal-border shadow-xs transition-colors"
-            >
-              Operator (Royal Express)
-            </button>
-            <button
-              type="button"
-              onClick={() => setDemoUser("admin@algions.com")}
-              className="px-3 py-1.5 bg-white hover:bg-ivory text-terracotta font-bold rounded-xl border border-charcoal-border shadow-xs transition-colors"
-            >
-              Admin (Operations)
-            </button>
-          </div>
         </div>
 
         {/* Login Card */}
@@ -114,6 +79,7 @@ export default function LoginPage() {
                 <Label className="text-xs font-bold text-charcoal">Email Address</Label>
                 <Input
                   type="email"
+                  autoComplete="username"
                   placeholder="name@example.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
@@ -131,6 +97,7 @@ export default function LoginPage() {
                 </div>
                 <Input
                   type="password"
+                  autoComplete="current-password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required

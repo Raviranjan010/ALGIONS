@@ -81,6 +81,18 @@ export async function POST(req: NextRequest) {
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       });
+
+      // Establish a real Supabase session for the new account. The app's
+      // HttpOnly display cookie is not an authentication credential.
+      const authClient = await createServerSupabaseClient();
+      const { error: signInError } = await authClient.auth.signInWithPassword({ email, password });
+      if (signInError) {
+        return errorResponse(
+          "REGISTRATION_SESSION_FAILED",
+          "Your account was created, but automatic sign-in failed. Please sign in with your new account.",
+          500
+        );
+      }
     } else {
       // Offline / Local Mock Registration
       const existing = Array.from(db.profiles.values()).find((p) => p.email.toLowerCase() === email);

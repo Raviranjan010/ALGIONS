@@ -41,9 +41,9 @@ export default function TripDetailPage({
   const [bookingError, setBookingError] = useState<string | null>(null);
 
   // Contact info
-  const [contactName, setContactName] = useState("Ravi Ranjan");
-  const [contactEmail, setContactEmail] = useState("passenger@algions.com");
-  const [contactPhone, setContactPhone] = useState("+91 98765 00001");
+  const [contactName, setContactName] = useState("");
+  const [contactEmail, setContactEmail] = useState("");
+  const [contactPhone, setContactPhone] = useState("");
 
   // Dynamic passengers state
   const [passengers, setPassengers] = useState<
