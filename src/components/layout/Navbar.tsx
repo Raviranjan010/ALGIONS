@@ -28,21 +28,27 @@ export const Navbar: React.FC = () => {
     role: string;
     fullName: string;
   } | null>(null);
+  const [sessionLoaded, setSessionLoaded] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [supportDropdownOpen, setSupportDropdownOpen] = useState(false);
 
   useEffect(() => {
-    try {
-      const match = document.cookie.match(new RegExp("(^| )algions_user_session=([^;]+)"));
-      if (match) {
-        const decoded = decodeURIComponent(match[2]);
-        setSessionUser(JSON.parse(decoded));
-      } else {
-        setSessionUser(null);
-      }
-    } catch {
-      setSessionUser(null);
-    }
+    let active = true;
+    setSessionLoaded(false);
+    fetch("/api/auth/session", { cache: "no-store" })
+      .then((response) => response.json())
+      .then((data) => {
+        if (active) setSessionUser(data?.user ?? null);
+      })
+      .catch(() => {
+        if (active) setSessionUser(null);
+      })
+      .finally(() => {
+        if (active) setSessionLoaded(true);
+      });
+    return () => {
+      active = false;
+    };
   }, [pathname]);
 
   const handleLogout = async () => {
@@ -130,7 +136,7 @@ export const Navbar: React.FC = () => {
 
         {/* Right CTA / Session Area */}
         <div className="hidden md:flex items-center gap-3">
-          {sessionUser ? (
+          {!sessionLoaded ? null : sessionUser ? (
             <div className="flex items-center gap-3">
               <div className="text-right">
                 <span className="text-xs font-bold text-charcoal block">
@@ -216,7 +222,7 @@ export const Navbar: React.FC = () => {
           </Link>
 
           <div className="pt-3 border-t border-charcoal-border flex items-center justify-between">
-            {sessionUser ? (
+            {!sessionLoaded ? null : sessionUser ? (
               <div className="flex items-center justify-between w-full">
                 <div>
                   <span className="text-xs font-bold block">{sessionUser.fullName}</span>

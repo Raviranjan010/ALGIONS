@@ -22,12 +22,26 @@ export const env = envSchema.parse({
 export function isSupabaseConfigured(): boolean {
   const url = env.NEXT_PUBLIC_SUPABASE_URL;
   const anon = env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  return Boolean(
+  const serviceKey = env.SUPABASE_SERVICE_ROLE_KEY;
+
+  const hasPublicConfig = Boolean(
     url &&
     anon &&
     !url.includes("dummy.supabase.co") &&
     !anon.includes("dummy-anon-key") &&
     url.startsWith("https://")
+  );
+
+  if (typeof window !== "undefined") {
+    return hasPublicConfig;
+  }
+
+  // On server, ensure service role key is also valid
+  return Boolean(
+    hasPublicConfig &&
+    serviceKey &&
+    !serviceKey.includes("dummy") &&
+    serviceKey.length > 20
   );
 }
 

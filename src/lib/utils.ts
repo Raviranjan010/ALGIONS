@@ -21,6 +21,7 @@ export function formatDate(dateString: string): string {
       day: "numeric",
       month: "short",
       year: "numeric",
+      timeZone: "Asia/Kolkata",
     });
   } catch {
     return dateString;
@@ -34,6 +35,7 @@ export function formatTime(dateString: string): string {
       hour: "2-digit",
       minute: "2-digit",
       hour12: true,
+      timeZone: "Asia/Kolkata",
     });
   } catch {
     return dateString;

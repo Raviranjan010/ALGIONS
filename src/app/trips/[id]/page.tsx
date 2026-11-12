@@ -142,8 +142,8 @@ export default function TripDetailPage({
           tripId,
           seatIds: selectedSeats.map((s) => s.id),
           passengers,
-          contactInfo: {
-            fullName: contactName,
+          contact: {
+            name: contactName,
             email: contactEmail,
             phone: contactPhone,
           },
@@ -153,7 +153,8 @@ export default function TripDetailPage({
       const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(data.error || "Booking transaction failed. Seats may have just been reserved.");
+        const message = typeof data.error === "string" ? data.error : data.error?.message;
+        throw new Error(message || "Booking transaction failed. Seats may have just been reserved.");
       }
 
       router.push(`/passenger/bookings?pnr=${data.data.pnr}&success=true`);
