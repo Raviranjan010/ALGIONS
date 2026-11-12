@@ -35,19 +35,23 @@ export const SearchForm: React.FC<SearchFormProps> = ({
   // Active tab: 'book' or 'manage'
   const [activeTab, setActiveTab] = useState<"book" | "manage">("book");
 
-  // Tomorrow as default date (YYYY-MM-DD)
-  const defaultDate = React.useMemo(() => {
-    if (initialDate) return initialDate;
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    return tomorrow.toISOString().split("T")[0];
-  }, [initialDate]);
-
   const [origin, setOrigin] = useState(initialOrigin);
   const [destination, setDestination] = useState(initialDestination);
-  const [date, setDate] = useState(defaultDate);
+  // Keep the initial server and browser render identical; calculate the
+  // timezone-dependent default only after hydration.
+  const [date, setDate] = useState(initialDate || "");
   const [passengers, setPassengers] = useState(initialPassengers);
   const [pnrSearch, setPnrSearch] = useState("");
+
+  React.useEffect(() => {
+    if (initialDate) {
+      setDate(initialDate);
+      return;
+    }
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    setDate(tomorrow.toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" }));
+  }, [initialDate]);
 
   const handleSwap = () => {
     const temp = origin;

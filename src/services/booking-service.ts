@@ -3,6 +3,7 @@ import { Booking, PublicTicketVerification } from "@/types";
 import { CreateBookingInput } from "@/lib/validation/schemas";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { createClient as createServerSupabaseClient } from "@/lib/supabase/server";
 
 export class BookingService {
   public static async createBooking(
@@ -10,7 +11,9 @@ export class BookingService {
     input: CreateBookingInput
   ): Promise<{ success: boolean; isIdempotentReplay: boolean; booking: Booking }> {
     if (isSupabaseConfigured()) {
-      const supabase = createAdminClient();
+      // Use the caller's verified Supabase session so auth.uid() inside the
+      // booking RPC matches this user. The admin client has no user JWT.
+      const supabase = await createServerSupabaseClient();
       const { data, error } = await supabase.rpc("create_booking_atomic", {
         p_trip_id: input.tripId,
         p_user_id: userId,
@@ -24,11 +27,26 @@ export class BookingService {
         throw new Error(error.message || "Failed to create booking");
       }
 
-      const fullBooking = await this.getBookingById(data.booking_id);
+      const { data: fullBooking, error: bookingError } = await supabase
+        .from("bookings")
+        .select(`
+          *,
+          trip:trips(*, route:routes(*), operator:operators(*), vehicle:vehicles(*)),
+          passengers:booking_passengers(*),
+          seats:booking_seats(*),
+          cancellation:cancellations(*)
+        `)
+        .eq("id", data.booking_id)
+        .eq("user_id", userId)
+        .single();
+
+      if (bookingError || !fullBooking) {
+        throw new Error(bookingError?.message || "Booking was created, but its ticket could not be loaded");
+      }
       return {
         success: true,
         isIdempotentReplay: Boolean(data.is_idempotent_replay),
-        booking: fullBooking!,
+        booking: fullBooking as Booking,
       };
     }
 
